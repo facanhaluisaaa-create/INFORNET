@@ -1,0 +1,987 @@
+<title>Simulador de Atendimento Infornet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap">
+<style>
+/* Layout: painel de treino com 4 clientes → conversa com consulta rápida ao lado → avaliação do atendimento */
+:root {
+  --bg: #F2F4FA;
+  --surface: #FFFFFF;
+  --surface-2: #E7EBF5;
+  --ink: #0E1A3A;
+  --muted: #56607A;
+  --line: #D4DAEA;
+  --accent: #1A47E6;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DFE5FB;
+  --me: #1A47E6;
+  --me-ink: #FFFFFF;
+  --them: #FFFFFF;
+  --chat-bg: #E8ECF6;
+  --logo-bg: #05141A;
+  --novo: #23784C;
+  --preco: #9A6512;
+  --insat: #B4410E;
+  --cancel: #A3214F;
+  --good: #23784C;
+  --warn: #9A6512;
+  --bad: #B42318;
+  --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1222; --surface: #131B30; --surface-2: #1B2540; --ink: #E4E9F7; --muted: #95A0BC; --line: #29344F;
+    --accent: #6E8CFF; --accent-ink: #061030; --accent-soft: #1A2A5E;
+    --me: #1D45D6; --me-ink: #FFFFFF; --them: #1B2540; --chat-bg: #0F1628;
+    --novo: #5DC48D; --preco: #E2AB4E; --insat: #F07E4A; --cancel: #EC6A96;
+    --good: #5DC48D; --warn: #E2AB4E; --bad: #F2735F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1222; --surface: #131B30; --surface-2: #1B2540; --ink: #E4E9F7; --muted: #95A0BC; --line: #29344F;
+  --accent: #6E8CFF; --accent-ink: #061030; --accent-soft: #1A2A5E;
+  --me: #1D45D6; --me-ink: #FFFFFF; --them: #1B2540; --chat-bg: #0F1628;
+  --novo: #5DC48D; --preco: #E2AB4E; --insat: #F07E4A; --cancel: #EC6A96;
+  --good: #5DC48D; --warn: #E2AB4E; --bad: #F2735F;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 1.25rem; font-weight: 600; }
+h3 { font-size: 1.02rem; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.eyebrow {
+  font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid transparent; border-radius: 10px; padding: 10px 16px; font-weight: 600;
+  background: var(--accent); color: var(--accent-ink);
+  transition: filter .15s ease, background .15s ease;
+}
+.btn:hover { filter: brightness(1.07); }
+.btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { background: var(--surface-2); }
+.btn.link { background: transparent; color: var(--accent); padding: 6px 4px; }
+.btn.danger { background: var(--bad); color: #fff; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Marca: a logo oficial tem fundo escuro, então fica num bloco escuro arredondado nos dois temas */
+.brand {
+  display: inline-flex; align-items: center; justify-content: center; background: var(--logo-bg);
+  border-radius: 14px; padding: 0; width: fit-content; line-height: 0; overflow: hidden;
+}
+.brand img { display: block; height: 104px; width: auto; }
+.brand.small img { height: 68px; }
+
+/* Início */
+.hero { display: grid; gap: 14px; max-width: 680px; }
+.hero p { font-size: 1.05rem; color: var(--muted); max-width: 62ch; }
+.start {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px;
+}
+.field { display: grid; gap: 6px; flex: 1 1 240px; min-width: 0; }
+.field label { font-weight: 600; font-size: .9rem; }
+.field input {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px 12px; width: 100%;
+}
+.modes { flex: 1 1 100%; border: 0; padding: 0; margin: 0; min-width: 0; }
+.modes legend { font-weight: 600; font-size: .9rem; padding: 0; margin-bottom: 6px; }
+.mode-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 640px) { .mode-opts { grid-template-columns: 1fr; } }
+.mode {
+  display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; cursor: pointer; background: var(--bg);
+}
+.mode:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.mode input { margin-top: 5px; accent-color: var(--accent); }
+.mode > span { display: grid; font-size: .86rem; line-height: 1.4; }
+.mode b { font-size: .95rem; }
+.temps { display: grid; gap: 10px; }
+.temps p { max-width: 70ch; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.step { display: grid; gap: 4px; padding: 14px 0; border-top: 2px solid var(--line); }
+.step b { font-family: var(--font-display); color: var(--accent); font-size: .85rem; }
+@media (max-width: 640px) { .steps { grid-template-columns: 1fr; } }
+
+/* Perfis */
+.chip {
+  --c: var(--accent);
+  display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700;
+  color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent);
+  border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+}
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+.p-novo { --c: var(--novo); }
+.p-preco { --c: var(--preco); }
+.p-insatisfeito { --c: var(--insat); }
+.p-cancelamento { --c: var(--cancel); }
+
+/* Painel */
+.topbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
+.progress { display: flex; gap: 18px; flex-wrap: wrap; }
+.stat { display: grid; }
+.stat span { font-size: .78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.stat strong { font-family: var(--font-display); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0;
+}
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.card .who { font-size: .9rem; color: var(--muted); }
+.card-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.status { font-size: .85rem; font-weight: 600; color: var(--muted); }
+.status.done { color: var(--good); }
+.status.live { color: var(--accent); }
+.score-pill {
+  font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums;
+  padding: 2px 10px; border-radius: 8px; background: var(--surface-2);
+}
+.notice {
+  border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius);
+  padding: 14px 16px; display: grid; gap: 4px;
+}
+.notice.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+.summary {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px;
+  display: grid; gap: 14px;
+}
+.summary table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.summary td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+.summary td.n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.confirm { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: .92rem; }
+
+/* Conversa */
+.chat-layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 16px; align-items: start; }
+@media (max-width: 860px) { .chat-layout { grid-template-columns: minmax(0, 1fr); } }
+.chat {
+  background: var(--chat-bg); border: 1px solid var(--line); border-radius: var(--radius);
+  display: flex; flex-direction: column; height: max(460px, calc(100dvh - 150px)); min-width: 0; overflow: hidden;
+}
+.chat-head {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface);
+  border-bottom: 1px solid var(--line); flex-wrap: wrap;
+}
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  font-family: var(--font-display); font-weight: 700; color: #fff; background: var(--c, var(--accent));
+}
+.chat-id { display: grid; min-width: 0; flex: 1 1 160px; }
+.chat-id strong { font-size: 1rem; }
+.chat-id span { font-size: .82rem; color: var(--muted); }
+.msgs { flex: 1; overflow-y: auto; padding: 18px 14px; display: flex; flex-direction: column; gap: 6px; }
+.bubble {
+  max-width: min(78%, 520px); padding: 8px 12px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
+}
+.bubble.them { align-self: flex-start; background: var(--them); border-top-left-radius: 4px; }
+.bubble.me { align-self: flex-end; background: var(--me); color: var(--me-ink); border-top-right-radius: 4px; }
+.bubble + .bubble.me, .bubble + .bubble.them { margin-top: 0; }
+.bubble.me + .bubble.them, .bubble.them + .bubble.me { margin-top: 8px; }
+.day { align-self: center; font-size: .75rem; color: var(--muted); background: var(--surface); border-radius: 8px; padding: 2px 10px; margin-bottom: 6px; }
+.typing { align-self: flex-start; background: var(--them); border-radius: 12px; padding: 10px 14px; display: flex; gap: 4px; margin-top: 8px; }
+.typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
+.typing i:nth-child(2) { animation-delay: .2s; }
+.typing i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 60%, 100% { opacity: .25 } 30% { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { .typing i { animation: none; opacity: .6; } }
+.ended {
+  align-self: center; text-align: center; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 12px 16px; margin-top: 12px; display: grid; gap: 8px; justify-items: center;
+}
+.composer { display: flex; gap: 8px; padding: 10px; background: var(--surface); border-top: 1px solid var(--line); align-items: end; }
+.composer textarea {
+  flex: 1; min-width: 0; resize: none; border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+  padding: 10px 12px; min-height: 44px; max-height: 140px;
+}
+.err { color: var(--bad); font-size: .88rem; padding: 0 12px 8px; background: var(--surface); }
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.confirm-bar { padding: 10px 14px; background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border-bottom: 1px solid var(--line); }
+
+/* Consulta rápida */
+.cola { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 16px 14px; }
+.cola summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; padding: 12px 0; }
+.cola section { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid var(--line); font-size: .88rem; }
+.cola h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.cola ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.ladder { display: flex; gap: 4px; flex-wrap: wrap; }
+.ladder span {
+  font-variant-numeric: tabular-nums; font-weight: 700; font-size: .82rem; padding: 2px 8px; border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) calc(var(--s) * 1%), var(--surface-2));
+}
+.objective { font-size: .88rem; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); }
+
+/* Avaliação */
+.eval { display: grid; gap: 16px; }
+.eval-top {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px;
+  display: flex; gap: 20px; flex-wrap: wrap; align-items: center;
+}
+.big-score { font-family: var(--font-display); font-size: 3.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.big-score small { font-size: 1.1rem; color: var(--muted); font-weight: 600; }
+.eval-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .eval-grid { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.crit { display: grid; gap: 4px; }
+.crit-top { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: .92rem; }
+.crit-top span:last-child { font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 4px; background: var(--c, var(--accent)); }
+.crit p { font-size: .86rem; color: var(--muted); }
+.list { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.example {
+  margin: 0; padding: 12px 14px; border-radius: 12px; border-top-right-radius: 4px;
+  background: var(--me); color: var(--me-ink); white-space: pre-wrap;
+}
+.transcript { display: grid; gap: 6px; font-size: .88rem; }
+.transcript p b { font-weight: 700; }
+.loading { display: grid; gap: 10px; justify-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; }
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var PERFIS = {
+    novo: { rotulo: "Novo interessado", objetivo: "Entender a necessidade e fechar a contratação." },
+    preco: { rotulo: "Comparando preços", objetivo: "Mostrar o valor da Infornet sem entrar em guerra de preço." },
+    insatisfeito: { rotulo: "Cliente insatisfeito", objetivo: "Resolver o problema e recuperar a confiança." },
+    cancelamento: { rotulo: "Pedido de cancelamento", objetivo: "Descobrir o motivo real e tentar reter o cliente." }
+  };
+  var ORDEM = ["novo", "preco", "insatisfeito", "cancelamento"];
+
+  // O temperamento é sorteado à parte da situação: o mesmo cliente pode chegar calmo num treino e explosivo no outro.
+  var TEMPERAMENTOS = {
+    tranquilo: { rotulo: "Tranquilo", nivel: 1,
+      tom: "Educado e paciente. Responde com calma, agradece e dá tempo ao atendente. Mesmo assim, só fecha ou aceita uma proposta se ela fizer sentido para você." },
+    indeciso: { rotulo: "Indeciso", nivel: 2,
+      tom: "Não sabe bem o que quer. Faz perguntas soltas, responde 'não sei', 'vou pensar', 'deixa eu ver com o pessoal de casa' e muda de ideia. Só avança se o atendente conduzir com perguntas e propor um próximo passo claro; se ninguém conduzir, você encerra com 'depois eu vejo'." },
+    desconfiado: { rotulo: "Desconfiado", nivel: 2,
+      tom: "Acha que todo provedor engana. Questiona as promessas ('isso é garantido?', 'tá no contrato?'), pede detalhes, desconfia de desconto bom demais e lembra de quando já foi enganado. Confia quando recebe respostas claras, honestas e sem enrolação." },
+    apressado: { rotulo: "Apressado", nivel: 2,
+      tom: "Está sem tempo. Escreve mensagens curtíssimas, às vezes uma palavra só ('e aí?', 'quanto?', 'resume'). Se o atendente mandar texto longo ou demorar para chegar ao ponto, você reclama ('tô no trabalho', 'vai direto ao ponto') e pode largar a conversa. Gosta de objetividade." },
+    irritado: { rotulo: "Irritado", nivel: 3,
+      tom: "Está com raiva. Usa caixa alta em algumas palavras, ironia e reclama de tudo. Ameaça ir ao Procon ou ao Reclame Aqui. Não aceita resposta pronta. Vai se acalmando aos poucos se o atendente reconhecer o problema com empatia, sem discutir e sem ficar se justificando." },
+    explosivo: { rotulo: "Muito difícil", nivel: 3,
+      tom: "O cliente mais difícil. É grosseiro (sem palavrões pesados), manda várias mensagens seguidas, generaliza ('vocês são todos iguais'), exige o impossível (mês grátis, técnico em 10 minutos) e ameaça expor a empresa nas redes sociais. Não se acalma rápido: só depois de várias respostas firmes, respeitosas e com solução concreta você começa a ceder. Se o atendente perder a paciência, for irônico ou prometer o que não pode cumprir, você piora." }
+  };
+  var MODOS = {
+    variado: { rotulo: "Variado", texto: "Mistura clientes tranquilos e difíceis. Recomendado." },
+    iniciante: { rotulo: "Aquecimento", texto: "Clientes mais tranquilos, para pegar o jeito." },
+    desafio: { rotulo: "Desafio", texto: "Clientes difíceis, para quem já treinou." }
+  };
+
+  function embaralhar(lista) {
+    var a = lista.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; }
+    return a;
+  }
+  function sortearTemperamentos(modo) {
+    var todos = Object.keys(TEMPERAMENTOS);
+    var nivel = function (k) { return TEMPERAMENTOS[k].nivel; };
+    if (modo === "iniciante") return embaralhar(todos.filter(function (k) { return nivel(k) <= 2; })).slice(0, 4);
+    if (modo === "desafio") {
+      var medios = embaralhar(todos.filter(function (k) { return nivel(k) === 2; })).slice(0, 2);
+      return embaralhar(["irritado", "explosivo"].concat(medios));
+    }
+    // variado: 4 temperamentos diferentes, com pelo menos um tranquilo e um difícil
+    for (var tentativa = 0; tentativa < 100; tentativa++) {
+      var pick = embaralhar(todos).slice(0, 4);
+      if (pick.indexOf("tranquilo") !== -1 && pick.some(function (k) { return nivel(k) === 3; })) return pick;
+    }
+    return embaralhar(["tranquilo", "indeciso", "desconfiado", "irritado"]);
+  }
+
+  var PERSONAS = [
+    { id: "n1", perfil: "novo", nome: "Larissa", cidade: "Campo Maior",
+      quem: "Professora, 34 anos. Acabou de se mudar para uma casa nova e quer contratar internet. Mora com o marido e dois filhos adolescentes.",
+      abertura: "Boa tarde! Queria saber da internet de vocês, me mudei agora pra cá",
+      escondido: "Vai começar a dar aulas online à noite (das 19h às 22h) e não pode ficar sem internet nesse horário. O provedor da casa antiga caía justamente à noite. Os filhos jogam e assistem vídeo ao mesmo tempo. Precisa da instalação até segunda-feira, quando começam as aulas. Quem decide é ela.",
+      reage: "Se o atendente perguntar sobre o uso da casa e explicar estabilidade e suporte rápido, ela fecha. Se ele só mandar a lista de planos sem perguntar nada, ela diz que vai ver com o marido e esfria.",
+      bom: "O atendente descobre o uso (aulas à noite, vários aparelhos), recomenda o plano adequado com argumento de estabilidade e suporte local, confirma o prazo de instalação e fecha a contratação." },
+    { id: "n2", perfil: "novo", nome: "Diego", cidade: "Piripiri",
+      quem: "Estudante, 19 anos. Joga online e quer a internet mais rápida possível.",
+      abertura: "opa, qual a internet mais rapida q vcs tem?",
+      escondido: "Quem paga a conta é a mãe, dona Rita, e ela já disse que não quer gastar muito. Ele joga à noite e o que mais incomoda é o atraso (ping alto), mais do que a velocidade. Hoje usa a internet do vizinho emprestada.",
+      reage: "Se o atendente perguntar para que ele usa e quem decide, e propor algo que caiba no bolso da mãe (mandar um resumo para ela ou falar com ela), ele avança. Se empurrarem o plano mais caro sem perguntar nada, ele responde que a mãe não vai pagar isso e esfria.",
+      bom: "O atendente identifica que a decisão e o pagamento são da mãe, entende que o problema é o ping, explica a vantagem da fibra para jogos, sugere um plano adequado e combina o próximo passo com a mãe." },
+    { id: "n3", perfil: "novo", nome: "Raimundo", cidade: "Capitão de Campos",
+      quem: "Dono de uma mercearia, 52 anos. Quer internet para o comércio.",
+      abertura: "Bom dia. Quero ver internet pro meu comercio. Como é que funciona o contrato de vcs?",
+      escondido: "Usa maquininha de cartão e PIX o dia todo. Mês passado a internet de outro provedor caiu num sábado e ele perdeu vendas. Tem medo de fidelidade e multa porque já se sentiu enganado por outra empresa.",
+      reage: "Desconfiado. Se o atendente explicar com clareza o contrato de 12 meses e a multa, e mostrar que o suporte é local e rápido, ele fecha. Se enrolarem sobre a multa, ele desconfia e diz que vai pensar.",
+      bom: "O atendente explica o contrato e a multa com transparência, liga a estabilidade e o suporte rápido à perda de vendas e fecha a contratação." },
+    { id: "n4", perfil: "novo", nome: "Dona Socorro", cidade: "Cocal de Telha",
+      quem: "Aposentada, 67 anos, pouco acostumada com tecnologia. Escreve com alguns erros de digitação.",
+      abertura: "boa tarde meu filho quero colocar essa internet de vcs aqui em casa",
+      escondido: "Quer fazer chamada de vídeo com a neta que mora em São Paulo e assistir missa no YouTube. Não sabe o que é 'mega'. Quem vai pagar é o filho Sérgio, que mora em Teresina e paga por PIX. Mora sozinha.",
+      reage: "Se o atendente tiver paciência e usar linguagem simples, ela fica feliz e quer fechar, mas o pagamento depende do filho. Se usar termos técnicos (mega, Wi-Fi 6, upload), ela fica confusa e pergunta de novo.",
+      bom: "O atendente usa linguagem simples, entende o uso, recomenda um plano básico sem empurrar o mais caro e combina como o filho vai finalizar." },
+
+    { id: "p1", perfil: "preco", nome: "Marcos", cidade: "Pedro II",
+      quem: "Cliente da Infornet há um ano e meio, 41 anos, mecânico. O contrato de 12 meses já terminou.",
+      abertura: "Boa tarde. Recebi uma proposta de outro provedor aqui, 30 reais mais barato. Vcs conseguem cobrir?",
+      escondido: "A oferta do concorrente regional é R$ 30 a menos só nos 3 primeiros meses, com instalação grátis; depois o preço sobe. Ele gosta do atendimento da Infornet e nunca teve problema sério. Tem receio de trocar e ficar sem internet.",
+      reage: "Se o atendente perguntar sobre a proposta e mostrar que o desconto do concorrente é temporário, um desconto pequeno (10% ou 15%) já resolve. Se o atendente oferecer 50% logo de cara, ele aceita e ainda pede mais alguma coisa.",
+      bom: "O atendente investiga a oferta, mostra que ela é temporária, reforça o atendimento local e, se precisar, oferece desconto pequeno em escada. Cliente retido." },
+    { id: "p2", perfil: "preco", nome: "Fernanda", cidade: "Campo Maior",
+      quem: "Ainda não é cliente. 29 anos, trabalha numa loja de roupas e quer contratar internet.",
+      abertura: "Oi, to vendo planos. A Brisanet ta com promoção nos primeiros meses, pq eu pagaria mais em vcs?",
+      escondido: "Já foi cliente de uma operadora grande e esperou mais de um dia por atendimento quando a internet caiu, falando com uma central de fora. Faz pedidos da loja pelo celular em casa e precisa de internet estável.",
+      reage: "Se o atendente perguntar da experiência dela com outras empresas e mostrar o atendimento local e rápido, ela se convence. Se só responder com preço ou falar mal do concorrente, ela diz que vai fechar com a promoção.",
+      bom: "O atendente não entra em guerra de preço, descobre a experiência ruim com suporte, mostra o diferencial do atendimento local e fecha." },
+    { id: "p3", perfil: "preco", nome: "Júlio", cidade: "Piripiri",
+      quem: "Cliente da Infornet há 8 meses, 37 anos, motorista de aplicativo. Está no meio do contrato.",
+      abertura: "Fala. Meu vizinho paga menos q eu num provedor ai do bairro, mesma velocidade. To pagando caro?",
+      escondido: "Na verdade a internet do vizinho tem velocidade menor e cai com frequência; o vizinho vive reclamando. Júlio só conta isso se o atendente perguntar como é a internet do vizinho.",
+      reage: "Se o atendente fizer perguntas sobre a comparação e mostrar a diferença de qualidade, ele fica tranquilo. Se o atendente der desconto sem perguntar nada, ele aceita, mas fica achando que estava mesmo pagando caro.",
+      bom: "O atendente compara de forma justa (velocidade, estabilidade, suporte), sem desconto desnecessário. Cliente segue satisfeito." },
+    { id: "p4", perfil: "preco", nome: "Tatiane", cidade: "Capitão de Campos",
+      quem: "Cliente da Infornet há 1 ano e 2 meses, 33 anos, manicure. Agenda as clientes pelo WhatsApp e pelo Instagram.",
+      abertura: "Oii, a Claro ta oferecendo combo internet + celular por um preço bom. Vale a pena eu trocar?",
+      escondido: "O preço do combo é promocional só no primeiro ano e o atendimento é por central. Ela gosta de resolver as coisas rápido na loja. Precisa da internet para as clientes acharem ela no Instagram.",
+      reage: "Se o atendente entender o uso dela e mostrar o custo e o atendimento depois da promoção, ela fica. Se o atendente parecer desinteressado, ela diz que vai trocar.",
+      bom: "O atendente entende o uso profissional, mostra a diferença de atendimento e de custo após a promoção e, se precisar, oferece desconto pequeno. Cliente retida." },
+
+    { id: "i1", perfil: "insatisfeito", nome: "Paulo", cidade: "Campo Maior",
+      quem: "Cliente, 45 anos, trabalha de casa fazendo atendimento online para uma empresa de fora.",
+      abertura: "Boa tarde. Fiquei O DIA INTEIRO ontem sem internet esperando técnico. Perdi um dia de trabalho. Assim não dá.",
+      escondido: "A internet já voltou hoje de manhã. Ele quer ser ouvido, entender o que aconteceu e ter a garantia de que não vai se repetir. Aceitaria um desconto proporcional no próximo boleto, mas não exige.",
+      reage: "Se o atendente pedir desculpas de verdade, ouvir e explicar o que será feito, ele se acalma. Se o atendente for defensivo ou culpar ele, ele ameaça cancelar.",
+      bom: "O atendente acolhe, pede desculpas, explica o que houve ou se compromete a verificar, oferece um gesto proporcional e recupera a confiança." },
+    { id: "i2", perfil: "insatisfeito", nome: "Camila", cidade: "Piripiri",
+      quem: "Cliente, 26 anos, estudante de enfermagem.",
+      abertura: "Oi, minha internet ta muito fraca, no meu quarto nem pega direito",
+      escondido: "O roteador fica na sala, na frente da casa, e o quarto dela é nos fundos, com duas paredes no meio. Na sala a internet funciona bem. Ela estuda à noite no quarto.",
+      reage: "Se o atendente fizer perguntas e entender que é alcance do Wi-Fi, ela aceita orientação (mudar o roteador de lugar) ou a troca por um equipamento melhor. Se mandarem técnico sem perguntar nada, ela aceita, mas reclama de ter que esperar.",
+      bom: "O atendente investiga com perguntas, identifica que é alcance do Wi-Fi e orienta ou oferece solução (reposicionar, Wi-Fi 7) sem visita técnica desnecessária." },
+    { id: "i3", perfil: "insatisfeito", nome: "Renato", cidade: "Cocal de Telha",
+      quem: "Cliente, 50 anos, professor de matemática. Racional, aceita explicação técnica se for clara.",
+      abertura: "Boa noite. Fiz o teste de velocidade e deu metade do que eu pago. Vou pagar por uma coisa q nao recebo?",
+      escondido: "Fez o teste num celular antigo, pelo Wi-Fi, às 21h, com 8 aparelhos conectados em casa (TVs e celulares dos filhos).",
+      reage: "Se o atendente perguntar como ele fez o teste e orientar a testar perto do roteador ou no cabo, ele colabora. Se o atendente só disser que está tudo normal, ele fica bravo.",
+      bom: "O atendente pergunta como o teste foi feito, explica com clareza, orienta um novo teste e verifica a conexão a distância." },
+    { id: "i4", perfil: "insatisfeito", nome: "Joana", cidade: "Pedro II",
+      quem: "Cliente há 2 anos, 38 anos, confeiteira. Sempre pagou em dia.",
+      abertura: "Bom dia. Paguei o boleto hj cedo e a internet continua bloqueada. Preciso dela pra receber encomenda.",
+      escondido: "Atrasou 10 dias por um imprevisto: a filha ficou doente. Recebe encomendas de bolo pelo WhatsApp e está perdendo pedidos. Está chateada porque sempre pagou certinho.",
+      reage: "Se o atendente for respeitoso, verificar o pagamento e dar um prazo claro, ela fica tranquila. Se tratar como caloteira ou mandar esperar sem dizer quanto tempo, ela fica bem irritada.",
+      bom: "O atendente acolhe sem julgar, pede o comprovante, verifica a liberação e informa um prazo claro." },
+
+    { id: "c1", perfil: "cancelamento", nome: "Antônio Carlos", cidade: "Campo Maior",
+      quem: "Cliente há 3 anos, 47 anos. Perdeu o emprego há dois meses.",
+      abertura: "Quero cancelar minha internet.",
+      escondido: "Está com 2 mensalidades atrasadas e a internet foi bloqueada. Pensa em contratar outro provedor que dá os 3 primeiros meses baratos. No fundo prefere continuar na Infornet, se conseguir pagar. Usa a internet para procurar emprego.",
+      reage: "Não conta o motivo de cara. Se o atendente perguntar com respeito, ele conta a situação. Aceita negociar a dívida e um desconto temporário. Se o atendente só processar o cancelamento, ele aceita e vai embora.",
+      bom: "O atendente descobre o motivo real (financeiro), acolhe sem julgar, propõe negociação e desconto em escada. Cliente retido." },
+    { id: "c2", perfil: "cancelamento", nome: "Patrícia", cidade: "Piripiri",
+      quem: "Cliente há 8 meses, 31 anos, enfermeira.",
+      abertura: "Boa tarde, preciso cancelar, vou me mudar.",
+      escondido: "Vai se mudar para Teresina em 3 semanas, onde a Infornet não atende. A mãe dela, dona Lúcia, vai continuar morando na casa e usa a internet para assistir TV e falar no WhatsApp. Ela não sabia que dava para passar a internet para outra pessoa.",
+      reage: "O motivo é real. Se o atendente insistir em desconto sem entender, ela fica impaciente. Se perguntar sobre a casa e sugerir deixar a internet com a mãe, ela gosta da ideia.",
+      bom: "O atendente entende que a mudança é real, descobre que a mãe fica na casa e propõe manter a internet para ela (verificando como trocar o titular, talvez com um plano menor). Se ela cancelar, explica a multa com clareza." },
+    { id: "c3", perfil: "cancelamento", nome: "Rodrigo", cidade: "Capitão de Campos",
+      quem: "Cliente há 1 ano e 2 meses, 28 anos, vendedor numa loja de motos. O contrato já passou dos 12 meses, sem multa.",
+      abertura: "Quero cancelar. Achei uma internet mais barata.",
+      escondido: "Um concorrente ofereceu R$ 30 a menos por mês nos 3 primeiros meses. Ele gosta do atendimento rápido da Infornet e tem medo de a troca dar problema.",
+      reage: "Se o atendente mostrar que o desconto é temporário e lembrar do atendimento, um desconto de 15% a 20% ou a troca por Wi-Fi 7 segura ele. Se oferecerem 50% logo de cara, ele aceita na hora.",
+      bom: "O atendente investiga a oferta, mostra o valor da Infornet e usa a escada de desconto ou o Wi-Fi 7. Cliente retido sem desconto exagerado." },
+    { id: "c4", perfil: "cancelamento", nome: "Dona Francisca", cidade: "Cocal de Telha",
+      quem: "Cliente há 2 anos, 72 anos, aposentada.",
+      abertura: "boa tarde quero cancelar a internet ta cara pra mim e eu quase nao uso",
+      escondido: "Usa o WhatsApp todo dia para falar com a família e assiste missa no YouTube. O neto usa a internet quando vem visitar nos fins de semana. A aposentadoria apertou com remédios.",
+      reage: "Se o atendente perguntar como ela usa e oferecer um plano mais barato ou desconto, ela fica feliz e mantém. Se falar difícil ou só falar da multa, ela fica nervosa.",
+      bom: "O atendente mostra que ela usa mais do que pensa e oferece plano menor ou desconto em escada, com linguagem simples. Cliente retida." }
+  ];
+
+  var REGRAS_INFORNET = [
+    "- Desconto sem aprovação, em escada: começa em 10% e sobe aos poucos (15%, 20%, 30%) até o teto de 50%. Dar desconto alto logo de cara, sem entender o motivo do cliente, é erro. Mensalidade grátis não é oferecida.",
+    "- Se o desconto não resolver, pode oferecer a troca do roteador Wi-Fi 6 por um Wi-Fi 7 bonificado.",
+    "- Contratos de 12 meses com multa rescisória.",
+    "- Diferenciais: atendimento local, rápido e pessoal; chamado resolvido em cerca de 2 horas; mesmo sinal em todos os bairros; rede com muita capacidade sobrando.",
+    "- Quem troca a Infornet por um provedor mais barato costuma voltar em até 2 meses.",
+    "- Problemas técnicos simples devem ser testados ou resolvidos a distância antes de mandar técnico.",
+    "- Cliente com atraso deve ser acolhido e ter a situação negociada antes que troque de provedor.",
+    "- Métodos do treinamento: SPIN Selling (situação, problema, implicação, necessidade) e BANT (orçamento, quem decide, necessidade, prazo).",
+    "- Não penalize o atendente por desconhecer regras que não estão nesta lista (por exemplo, parcelamento de dívida, troca de titular ou prazo de liberação). Nesses casos, valorize quem se compromete a verificar em vez de prometer o que não sabe."
+  ].join("\n");
+
+
+  var LOGO = "data:image/jpeg;base64,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";
+  function logo(classe) { return h("div", { class: "brand" + (classe ? " " + classe : "") }, h("img", { src: LOGO, alt: "Infornet", width: "480", height: "340" })); }
+
+  var CRITERIOS = ["Empatia e controle emocional", "Diagnóstico e perguntas", "Valor da Infornet", "Objeções e negociação", "Condução e fechamento"];
+
+  // ---------- estado ----------
+  var KEY = "infornet-simulador-v1";
+  function carregar() {
+    try { var s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+  }
+  function salvar() {
+    try { localStorage.setItem(KEY, JSON.stringify(estado)); } catch (e) { /* sem armazenamento: segue só nesta aba */ }
+  }
+  var estado = carregar();
+  if (!estado || typeof estado !== "object") estado = { nome: "", usados: [], sessao: null };
+  if (!Array.isArray(estado.usados)) estado.usados = [];
+
+  var ui = { view: estado.sessao ? "painel" : "inicio", atual: null, rascunho: "", erro: "", aguardando: false,
+             confirmarEncerrar: false, confirmarReinicio: false, avaliando: false, erroAval: "", copiado: "" };
+  var ctl = null;
+
+  var sample = null, statusClaude = "carregando";
+  (async function () {
+    try { sample = (window.claude && window.claude.use) ? await window.claude.use("sample") : null; }
+    catch (e) { sample = null; }
+    statusClaude = sample ? "ok" : "indisponivel";
+    if (ui.view !== "chat") render(); else atualizarAviso();
+  })();
+
+  function persona(id) { for (var i = 0; i < PERSONAS.length; i++) if (PERSONAS[i].id === id) return PERSONAS[i]; return null; }
+
+  function escolher(perfil) {
+    var pool = PERSONAS.filter(function (p) { return p.perfil === perfil; });
+    var usadosDoPerfil = estado.usados.filter(function (id) { return pool.some(function (p) { return p.id === id; }); });
+    var livres = pool.filter(function (p) { return usadosDoPerfil.indexOf(p.id) === -1; });
+    if (!livres.length) {
+      // todos já apareceram: recomeça o ciclo, sem repetir o último cliente desse perfil
+      var ultimo = usadosDoPerfil[usadosDoPerfil.length - 1];
+      estado.usados = estado.usados.filter(function (id) { return usadosDoPerfil.indexOf(id) === -1; });
+      livres = pool.filter(function (p) { return p.id !== ultimo; });
+    }
+    var p = livres[Math.floor(Math.random() * livres.length)];
+    estado.usados.push(p.id);
+    return p.id;
+  }
+
+  function novaSessao() {
+    var modo = MODOS[estado.modo] ? estado.modo : "variado";
+    var ids = ORDEM.map(escolher);
+    var temps = sortearTemperamentos(modo);
+    var res = {}, mapa = {};
+    ids.forEach(function (id, i) {
+      res[id] = { estado: "pendente", msgs: [], fim: false, aval: null };
+      mapa[id] = temps[i];
+    });
+    estado.sessao = { ids: ids, res: res, temps: mapa, modo: modo, inicio: new Date().toISOString() };
+    salvar();
+  }
+  function temperamento(id) {
+    var k = estado.sessao && estado.sessao.temps ? estado.sessao.temps[id] : null;
+    return TEMPERAMENTOS[k] || TEMPERAMENTOS.tranquilo;
+  }
+  function chipTemp(t) {
+    var cor = t.nivel === 3 ? "var(--bad)" : t.nivel === 2 ? "var(--warn)" : "var(--good)";
+    return h("span", { class: "chip", style: "--c:" + cor }, "Temperamento: " + t.rotulo);
+  }
+
+  // ---------- util ----------
+  function h(tag, props) {
+    var e = document.createElement(tag);
+    props = props || {};
+    Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (v == null || v === false) return;
+      if (k === "class") e.className = v;
+      else if (k === "text") e.textContent = v;
+      else if (k === "style") e.setAttribute("style", v);
+      else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? "" : v);
+    });
+    for (var i = 2; i < arguments.length; i++) anexar(e, arguments[i]);
+    return e;
+  }
+  function anexar(e, kid) {
+    if (kid == null || kid === false) return;
+    if (Array.isArray(kid)) { kid.forEach(function (k) { anexar(e, k); }); return; }
+    e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  function iniciais(nome) {
+    var partes = nome.replace(/^Dona\s+/i, "").split(/\s+/);
+    return (partes[0][0] + (partes[1] ? partes[1][0] : "")).toUpperCase();
+  }
+  function fmt(n) { return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+  function corNota(n) { return n >= 8 ? "var(--good)" : n >= 6 ? "var(--warn)" : "var(--bad)"; }
+  function chip(perfil) { return h("span", { class: "chip p-" + perfil }, PERFIS[perfil].rotulo); }
+  function concluidos() {
+    var s = estado.sessao; if (!s) return [];
+    return s.ids.filter(function (id) { return s.res[id].estado === "concluido" && s.res[id].aval; });
+  }
+  function media() {
+    var c = concluidos(); if (!c.length) return null;
+    var soma = c.reduce(function (a, id) { return a + Number(estado.sessao.res[id].aval.nota || 0); }, 0);
+    return soma / c.length;
+  }
+  function mensagemErro(code) {
+    switch (code) {
+      case "not_granted": return "O uso do Claude não foi permitido nesta página. Para treinar, recarregue a página e permita quando o aviso aparecer.";
+      case "sampling_disabled": case "not_declared": case "capability_disabled": case "capability_removed":
+        return "O Claude não está disponível para esta conta. Abra o simulador com uma conta do claude.ai que tenha acesso.";
+      case "session_expired": return "Sua sessão no claude.ai expirou. Entre de novo e recarregue a página.";
+      case "rate_limited": return "Muitas mensagens em pouco tempo. Espere um minuto e envie de novo.";
+      case "refused": case "empty_completion": return "O cliente não conseguiu responder a essa mensagem. Reescreva e envie de novo.";
+      case "invalid_json": return "A avaliação veio num formato inesperado. Tente de novo.";
+      default: return "A conexão falhou. Envie de novo.";
+    }
+  }
+
+  // ---------- prompts ----------
+  function regrasCliente(p, t) {
+    return [
+      "Você está numa simulação de treinamento de atendimento da Infornet, um provedor local de internet por fibra óptica no interior do Piauí (Campo Maior, Piripiri, Capitão de Campos, Cocal de Telha e Pedro II). Você interpreta UM cliente conversando pelo WhatsApp com um(a) atendente da Infornet que está em treinamento. As próximas mensagens de usuário são do atendente. Você responde somente como o cliente.",
+      "",
+      "SEU PERSONAGEM",
+      "Nome: " + p.nome + " (" + p.cidade + ")",
+      "Quem você é: " + p.quem,
+      "O que você só conta se o atendente perguntar bem: " + p.escondido,
+      "Como você reage: " + p.reage,
+      "",
+      "SEU TEMPERAMENTO NESTA CONVERSA: " + t.rotulo,
+      t.tom,
+      "O temperamento manda no seu tom e na sua paciência do começo ao fim. A sua situação e o que convence você continuam sendo os do personagem. Se a primeira mensagem já enviada não combinar com esse tom, siga com o tom do temperamento a partir de agora.",
+      "",
+      "COMO ESCREVER",
+      "- Como uma pessoa real no WhatsApp: mensagens curtas (1 a 3 frases), português informal do interior do Piauí, sem listas, sem markdown, sem asteriscos. Emoji só de vez em quando.",
+      "- Para mandar duas mensagens seguidas, separe com uma linha em branco.",
+      "- Responda ao que foi perguntado. Os detalhes escondidos só aparecem quando o atendente faz boas perguntas sobre a sua situação.",
+      "- Reaja ao atendimento de verdade: atendimento atencioso, que entende a sua situação e propõe algo que faz sentido, deixa você mais aberto. Resposta robótica, apressada, que ignora o que você disse ou empurra produto deixa você mais resistente.",
+      "- Não seja impossível: mesmo com o temperamento mais difícil, um atendimento muito bom consegue um bom desfecho, só que dá mais trabalho.",
+      "- Não invente preços nem regras da Infornet. Se o atendente disser valores, use os valores dele.",
+      "- Se pedirem CPF, endereço ou outros dados pessoais, diga que manda depois por foto.",
+      "- Nunca saia do personagem, nunca diga que é uma IA ou uma simulação, nunca dê dicas nem avalie o atendente.",
+      "- Quando a conversa chegar a um desfecho natural (contratou, decidiu ficar, cancelou, problema resolvido ou encaminhado, ou desistiu de conversar), despeça-se e termine a última mensagem com a marca [FIM]. Não use [FIM] antes disso.",
+      "",
+      "Você já mandou a primeira mensagem. Agora responda ao atendente."
+    ].join("\n");
+  }
+
+  function transcricao(p, r) {
+    return r.msgs.map(function (m) { return (m.de === "atendente" ? "Atendente: " : p.nome + " (cliente): ") + m.t; }).join("\n");
+  }
+
+  function promptAvaliacao(p, r, t) {
+    var perfil = PERFIS[p.perfil];
+    return [
+      "Você é instrutor(a) de atendimento comercial e avalia um treino de atendentes da Infornet, provedor local de internet por fibra óptica no interior do Piauí. Um(a) atendente conversou pelo WhatsApp com um cliente simulado. Avalie apenas o desempenho do ATENDENTE.",
+      "",
+      "PERFIL DO CLIENTE: " + perfil.rotulo + ". Objetivo do atendente: " + perfil.objetivo,
+      "Personagem: " + p.nome + ", " + p.cidade + ". " + p.quem,
+      "Informações que o cliente só revelaria com boas perguntas: " + p.escondido,
+      "Um bom desfecho seria: " + p.bom,
+      "Temperamento do cliente: " + t.rotulo + " (dificuldade " + t.nivel + " de 3). " + t.tom,
+      "Leve a dificuldade em conta: com cliente difícil, manter a calma, não discutir e conduzir até uma solução já é mérito, mesmo sem o desfecho ideal; com cliente tranquilo, espera-se um bom desfecho. Avalie se o atendente adaptou o jeito de falar ao temperamento (por exemplo, objetividade com o apressado, condução com o indeciso, clareza com o desconfiado, acolhimento com o irritado).",
+      "",
+      "REGRAS E ARGUMENTOS DA INFORNET",
+      REGRAS_INFORNET,
+      "",
+      "CONVERSA",
+      transcricao(p, r),
+      "",
+      "Responda somente com um objeto JSON neste formato:",
+      '{"resultado":"Cliente retido","nota":7.5,"criterios":[{"nome":"Cordialidade e empatia","nota":8,"comentario":"..."}],"pontosFortes":["...","..."],"melhorar":["...","..."],"fraseExemplo":"..."}',
+      "",
+      '- "resultado": um destes: "Venda fechada", "Cliente retido", "Cancelamento", "Problema resolvido", "Encaminhado", "Sem desfecho".',
+      '- "criterios": exatamente estes 5, nesta ordem: ' + CRITERIOS.map(function (c) { return '"' + c + '"'; }).join(", ") + ". Nota inteira de 0 a 10 e um comentário de uma frase citando algo concreto da conversa.",
+      '- "nota": nota geral de 0 a 10, com uma casa decimal, coerente com os critérios e com o desfecho.',
+      '- "pontosFortes" e "melhorar": 2 itens cada, frases curtas e específicas.',
+      '- "fraseExemplo": uma mensagem pronta que o atendente poderia ter enviado no momento mais importante da conversa, no tom do WhatsApp.',
+      "- Escreva em português do Brasil, falando diretamente com o atendente (você).",
+      "- Conversa muito curta ou sem esforço real recebe nota baixa."
+    ].join("\n");
+  }
+
+  function limparResposta(texto, p) {
+    var fim = /\[FIM\]/i.test(texto);
+    var t = texto.replace(/\[FIM\]/gi, "").trim();
+    var prefixo = new RegExp("^\\s*" + p.nome.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*(\\(cliente\\))?\\s*:\\s*", "i");
+    var partes = t.split(/\n\s*\n/).map(function (s) { return s.replace(prefixo, "").trim(); }).filter(Boolean);
+    return { partes: partes, fim: fim };
+  }
+
+  // ---------- ações ----------
+  function abrirCliente(id) {
+    var r = estado.sessao.res[id];
+    var p = persona(id);
+    if (r.estado === "concluido") { ui.view = "aval"; ui.atual = id; render(); return; }
+    if (r.estado === "pendente") {
+      r.estado = "andamento";
+      r.msgs = [{ de: "cliente", t: p.abertura }];
+      salvar();
+    }
+    ui.view = "chat"; ui.atual = id; ui.rascunho = ""; ui.erro = ""; ui.confirmarEncerrar = false;
+    render();
+    var ta = document.getElementById("msg"); if (ta) ta.focus();
+  }
+
+  function voltarPainel() {
+    if (ctl) { ctl.abort(); ctl = null; }
+    ui.view = "painel"; ui.atual = null; ui.confirmarEncerrar = false; ui.erroAval = ""; ui.copiado = "";
+    render();
+  }
+
+  async function enviar() {
+    var id = ui.atual, r = estado.sessao.res[id], p = persona(id);
+    var texto = ui.rascunho.trim();
+    if (!texto || ui.aguardando || r.fim) return;
+    if (!sample) { ui.erro = "O simulador só responde quando a página está aberta no claude.ai com a sua conta."; render(); return; }
+    r.msgs.push({ de: "atendente", t: texto });
+    ui.rascunho = ""; ui.erro = ""; ui.aguardando = true; salvar(); render();
+
+    var turnos = [{ role: "user", content: regrasCliente(p, temperamento(id)) }].concat(r.msgs.map(function (m) {
+      return { role: m.de === "atendente" ? "user" : "assistant", content: m.t };
+    }));
+    ctl = new AbortController();
+    try {
+      var resp = await sample(turnos, { modelTier: "quick", cache: false, signal: ctl.signal });
+      var limpo = limparResposta(resp.text || "", p);
+      if (!limpo.partes.length && !limpo.fim) throw { code: "empty_completion" };
+      limpo.partes.forEach(function (t) { r.msgs.push({ de: "cliente", t: t }); });
+      if (limpo.fim) r.fim = true;
+    } catch (e) {
+      r.msgs.pop();
+      if (!e || e.code !== "cancelled") { ui.rascunho = texto; ui.erro = mensagemErro(e && e.code); }
+    } finally {
+      ctl = null; ui.aguardando = false; salvar();
+      if (ui.view === "chat" && ui.atual === id) { render(); var ta = document.getElementById("msg"); if (ta && !r.fim) ta.focus(); }
+    }
+  }
+
+  async function avaliar(id) {
+    var r = estado.sessao.res[id], p = persona(id);
+    if (ctl) { ctl.abort(); ctl = null; }
+    ui.view = "aval"; ui.atual = id; ui.confirmarEncerrar = false; ui.erroAval = "";
+    r.fim = true; salvar();
+    if (r.aval) { render(); return; }
+    if (!sample) { ui.erroAval = "A avaliação só funciona com a página aberta no claude.ai com a sua conta."; render(); return; }
+    ui.avaliando = true; render();
+    try {
+      var a = await sample.json(promptAvaliacao(p, r, temperamento(id)), { modelTier: "default" });
+      r.aval = normalizarAval(a);
+      r.estado = "concluido";
+    } catch (e) {
+      ui.erroAval = mensagemErro(e && e.code);
+    } finally {
+      ui.avaliando = false; salvar();
+      if (ui.view === "aval" && ui.atual === id) render();
+    }
+  }
+
+  function normalizarAval(a) {
+    a = a && typeof a === "object" ? a : {};
+    var num = function (v) { var n = Number(v); return isFinite(n) ? Math.max(0, Math.min(10, n)) : 0; };
+    var crits = Array.isArray(a.criterios) ? a.criterios : [];
+    return {
+      resultado: String(a.resultado || "Sem desfecho"),
+      nota: Math.round(num(a.nota) * 10) / 10,
+      criterios: CRITERIOS.map(function (nome, i) {
+        var c = crits.filter(function (x) { return x && x.nome === nome; })[0] || crits[i] || {};
+        return { nome: nome, nota: num(c.nota), comentario: String(c.comentario || "") };
+      }),
+      pontosFortes: (Array.isArray(a.pontosFortes) ? a.pontosFortes : []).slice(0, 3).map(String),
+      melhorar: (Array.isArray(a.melhorar) ? a.melhorar : []).slice(0, 3).map(String),
+      fraseExemplo: String(a.fraseExemplo || "")
+    };
+  }
+
+  function textoRelatorio() {
+    var s = estado.sessao;
+    var linhas = ["Treino de atendimento Infornet" + (estado.nome ? " - " + estado.nome : ""),
+                  new Date(s.inicio).toLocaleDateString("pt-BR"), ""];
+    s.ids.forEach(function (id, i) {
+      var p = persona(id), r = s.res[id];
+      var nota = r.aval ? fmt(r.aval.nota) + "/10 - " + r.aval.resultado : "não concluído";
+      linhas.push((i + 1) + ". " + PERFIS[p.perfil].rotulo + " (" + p.nome + ", " + p.cidade + ", " + temperamento(id).rotulo.toLowerCase() + "): " + nota);
+    });
+    var m = media();
+    if (m != null) { linhas.push(""); linhas.push("Média: " + fmt(m) + "/10"); }
+    return linhas.join("\n");
+  }
+
+  async function copiarRelatorio() {
+    var txt = textoRelatorio();
+    try { await navigator.clipboard.writeText(txt); ui.copiado = "Resultado copiado. Cole no WhatsApp para enviar ao instrutor."; }
+    catch (e) {
+      ui.copiado = "Não deu para copiar automaticamente. Selecione o texto abaixo e copie.";
+      ui.mostrarTexto = true;
+    }
+    render();
+  }
+
+  // ---------- telas ----------
+  var app = document.getElementById("app");
+
+  function avisoClaude() {
+    if (statusClaude !== "indisponivel") return null;
+    return h("div", { class: "notice warn", id: "aviso" },
+      h("strong", null, "Os clientes não vão responder nesta janela"),
+      h("p", { class: "muted" }, "O simulador usa o Claude da sua conta. Abra este link no claude.ai, com sua conta conectada, para conversar com os clientes."));
+  }
+  function atualizarAviso() {
+    var a = document.getElementById("aviso");
+    if (statusClaude === "ok" && a) a.remove();
+  }
+
+  function telaInicio() {
+    var input = h("input", { id: "nome", type: "text", autocomplete: "name", placeholder: "Ex.: Dilmara", value: estado.nome || "",
+      oninput: function (e) { estado.nome = e.target.value; } });
+    var comecar = function (e) {
+      e.preventDefault();
+      estado.nome = input.value.trim(); novaSessao(); ui.view = "painel"; render();
+    };
+    return [
+      h("header", { class: "hero" },
+        logo(),
+        h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Simulações práticas"),
+        h("h1", null, "Simulador de atendimento"),
+        h("p", null, "Você vai atender 4 clientes pelo WhatsApp, um de cada perfil. Cada cliente aparece uma única vez no seu treino, e no próximo treino os clientes são outros. No fim de cada conversa, você recebe uma nota e dicas do que melhorar.")),
+      avisoClaude(),
+      h("form", { class: "start", onsubmit: comecar },
+        h("div", { class: "field" }, h("label", { for: "nome" }, "Seu nome"), input),
+        h("fieldset", { class: "modes" },
+          h("legend", null, "Nível dos clientes"),
+          h("div", { class: "mode-opts" }, Object.keys(MODOS).map(function (k) {
+            return h("label", { class: "mode", for: "modo-" + k },
+              h("input", { type: "radio", name: "modo", id: "modo-" + k, value: k, checked: (estado.modo || "variado") === k,
+                onchange: function () { estado.modo = k; salvar(); } }),
+              h("span", null, h("b", null, MODOS[k].rotulo), h("span", { class: "muted" }, MODOS[k].texto)));
+          }))),
+        h("button", { class: "btn", type: "submit" }, "Começar treino")),
+      h("section", { class: "grid", "aria-label": "Perfis de cliente" },
+        ORDEM.map(function (k) {
+          return h("article", { class: "card" }, chip(k), h("h3", null, PERFIS[k].rotulo), h("p", { class: "muted" }, PERFIS[k].objetivo));
+        })),
+      h("section", { class: "temps", "aria-label": "Temperamentos" },
+        h("h2", null, "Cada cliente chega de um jeito"),
+        h("p", { class: "muted" }, "Além do perfil, cada cliente recebe um temperamento sorteado. O mesmo caso pode vir com uma pessoa calma num treino e com uma pessoa muito difícil no outro. Você só descobre o temperamento na avaliação, como na vida real."),
+        h("div", { class: "row" }, Object.keys(TEMPERAMENTOS).map(function (k) { return chipTemp(TEMPERAMENTOS[k]); }))),
+      h("section", { class: "steps", "aria-label": "Como funciona" },
+        h("div", { class: "step" }, h("b", null, "1. Escolha um cliente"), h("p", { class: "muted" }, "Os 4 perfis podem ser atendidos em qualquer ordem.")),
+        h("div", { class: "step" }, h("b", null, "2. Atenda como no WhatsApp"), h("p", { class: "muted" }, "O cliente reage ao seu atendimento: pergunte, entenda e negocie.")),
+        h("div", { class: "step" }, h("b", null, "3. Encerre e veja a avaliação"), h("p", { class: "muted" }, "Nota de 0 a 10 em 5 critérios, com exemplo de resposta.")))
+    ];
+  }
+
+  function telaPainel() {
+    var s = estado.sessao;
+    var feitos = concluidos().length;
+    var m = media();
+    var cards = s.ids.map(function (id, i) {
+      var p = persona(id), r = s.res[id];
+      var status, acao;
+      if (r.estado === "concluido" && r.aval) {
+        status = h("span", { class: "status done" }, "Concluído · " + r.aval.resultado);
+        acao = h("button", { class: "btn ghost", onclick: function () { abrirCliente(id); } }, "Ver avaliação");
+      } else if (r.estado === "andamento") {
+        status = h("span", { class: "status live" }, r.fim ? "Conversa encerrada · falta avaliar" : "Em andamento");
+        acao = r.fim
+          ? h("button", { class: "btn", onclick: function () { avaliar(id); } }, "Ver avaliação")
+          : h("button", { class: "btn", onclick: function () { abrirCliente(id); } }, "Continuar conversa");
+      } else {
+        status = h("span", { class: "status" }, "Ainda não atendido");
+        acao = h("button", { class: "btn", onclick: function () { abrirCliente(id); } }, "Começar atendimento");
+      }
+      return h("article", { class: "card" },
+        h("div", { class: "card-head" }, chip(p.perfil),
+          r.aval ? h("span", { class: "score-pill", style: "color:" + corNota(r.aval.nota) }, fmt(r.aval.nota)) : h("span", { class: "muted" }, "Cliente " + (i + 1))),
+        r.aval ? chipTemp(temperamento(id)) : null,
+        h("h3", null, r.estado === "pendente" ? "Quem é o cliente aparece ao abrir" : p.nome + " · " + p.cidade),
+        h("p", { class: "muted" }, PERFIS[p.perfil].objetivo),
+        h("div", { class: "card-foot" }, status, acao));
+    });
+
+    var resumo = null;
+    if (feitos === 4) {
+      resumo = h("section", { class: "summary" },
+        h("h2", null, "Treino concluído"),
+        h("p", { class: "muted" }, "Média de " + fmt(m) + " nos 4 atendimentos. Copie o resultado para enviar ao instrutor."),
+        h("div", { style: "overflow-x:auto" },
+          h("table", null, h("tbody", null, s.ids.map(function (id) {
+            var p = persona(id), r = s.res[id];
+            return h("tr", null, h("td", null, chip(p.perfil)), h("td", null, p.nome + " (" + temperamento(id).rotulo.toLowerCase() + ") · " + r.aval.resultado),
+              h("td", { class: "n", style: "color:" + corNota(r.aval.nota) }, fmt(r.aval.nota)));
+          })))),
+        h("div", { class: "row" },
+          h("button", { class: "btn", onclick: copiarRelatorio }, "Copiar resultado"),
+          h("button", { class: "btn ghost", onclick: function () { novaSessao(); ui.copiado = ""; render(); } }, "Novo treino com outros clientes")),
+        ui.copiado ? h("p", { class: "muted", role: "status" }, ui.copiado) : null,
+        ui.mostrarTexto ? h("textarea", { readonly: true, rows: 8, style: "width:100%", id: "relatorio" }, textoRelatorio()) : null);
+    }
+
+    var reinicio = ui.confirmarReinicio
+      ? h("div", { class: "confirm" }, h("span", null, "Descartar este treino e sortear outros 4 clientes?"),
+          h("button", { class: "btn danger", onclick: function () { novaSessao(); ui.confirmarReinicio = false; render(); } }, "Descartar e recomeçar"),
+          h("button", { class: "btn ghost", onclick: function () { ui.confirmarReinicio = false; render(); } }, "Manter treino"))
+      : h("button", { class: "btn link", onclick: function () { ui.confirmarReinicio = true; render(); } }, "Recomeçar com outros clientes");
+
+    return [
+      h("header", { class: "topbar" },
+        h("div", { style: "display:grid;gap:8px" },
+          logo("small"),
+          h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Nível " + (MODOS[s.modo] || MODOS.variado).rotulo),
+          h("h1", null, estado.nome ? "Treino de " + estado.nome : "Seu treino")),
+        h("div", { class: "progress" },
+          h("div", { class: "stat" }, h("span", null, "Concluídos"), h("strong", null, feitos + " de 4")),
+          h("div", { class: "stat" }, h("span", null, "Média"), h("strong", m != null ? { style: "color:" + corNota(m) } : null, m != null ? fmt(m) : "–")))),
+      avisoClaude(),
+      resumo,
+      h("section", { class: "grid", "aria-label": "Clientes do treino" }, cards),
+      feitos < 4 ? reinicio : null
+    ];
+  }
+
+  function cola(p) {
+    return h("details", { class: "cola", open: window.matchMedia("(min-width: 861px)").matches },
+      h("summary", null, "Consulta rápida"),
+      h("p", { class: "objective" }, h("strong", null, "Seu objetivo: "), PERFIS[p.perfil].objetivo),
+      h("section", null, h("h3", null, "Escada de desconto"),
+        h("div", { class: "ladder" }, [10, 15, 20, 30, 50].map(function (n) { return h("span", { style: "--s:" + (n * 0.6) }, n + "%"); })),
+        h("p", { class: "muted" }, "Comece pelo menor. 50% é o teto. Mensalidade grátis não.")),
+      h("section", null, h("h3", null, "Se o desconto não resolver"), h("p", null, "Troca do Wi-Fi 6 por Wi-Fi 7 bonificado.")),
+      h("section", null, h("h3", null, "Diferenciais"),
+        h("ul", null, h("li", null, "Atendimento local, rápido e pessoal"), h("li", null, "Chamado resolvido em cerca de 2 horas"),
+          h("li", null, "Mesmo sinal em todos os bairros"), h("li", null, "Rede com capacidade sobrando"))),
+      h("section", null, h("h3", null, "Lembretes"),
+        h("ul", null, h("li", null, "Pergunte antes de oferecer (SPIN)"), h("li", null, "Descubra quem decide e paga (BANT)"),
+          h("li", null, "Teste a distância antes de mandar técnico"), h("li", null, "Quem sai pelo preço costuma voltar em até 2 meses"),
+          h("li", null, "Contrato de 12 meses com multa"))));
+  }
+
+  function telaChat() {
+    var id = ui.atual, r = estado.sessao.res[id], p = persona(id);
+    var temResposta = r.msgs.some(function (m) { return m.de === "atendente"; });
+
+    var msgs = h("div", { class: "msgs", id: "msgs", "aria-live": "polite" },
+      h("span", { class: "day" }, "Hoje"),
+      r.msgs.map(function (m) { return h("div", { class: "bubble " + (m.de === "atendente" ? "me" : "them") }, m.t); }),
+      ui.aguardando ? h("div", { class: "typing", "aria-label": p.nome + " está digitando" }, h("i"), h("i"), h("i")) : null,
+      r.fim ? h("div", { class: "ended" }, h("strong", null, p.nome + " encerrou a conversa."),
+        h("button", { class: "btn", onclick: function () { avaliar(id); } }, "Ver avaliação")) : null);
+
+    var ta = h("textarea", { id: "msg", rows: 1, placeholder: r.fim ? "Conversa encerrada" : "Escreva sua mensagem…", disabled: r.fim || ui.aguardando,
+      "aria-label": "Mensagem para " + p.nome,
+      oninput: function (e) { ui.rascunho = e.target.value; ajustar(e.target); },
+      onkeydown: function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } } });
+    ta.value = ui.rascunho;
+
+    var encerrar = ui.confirmarEncerrar
+      ? h("div", { class: "confirm-bar confirm" }, h("span", null, "Encerrar este atendimento? Depois não dá para continuar a conversa."),
+          h("button", { class: "btn", onclick: function () { avaliar(id); } }, "Encerrar e avaliar"),
+          h("button", { class: "btn ghost", onclick: function () { ui.confirmarEncerrar = false; render(); } }, "Continuar conversando"))
+      : null;
+
+    return [
+      avisoClaude(),
+      h("div", { class: "chat-layout" },
+        h("section", { class: "chat", "aria-label": "Conversa com " + p.nome },
+          h("div", { class: "chat-head" },
+            h("button", { class: "btn ghost", onclick: voltarPainel, "aria-label": "Voltar para os clientes" }, "← Clientes"),
+            h("div", { class: "avatar p-" + p.perfil, style: "background:var(--c)" }, iniciais(p.nome)),
+            h("div", { class: "chat-id" }, h("strong", null, p.nome), h("span", null, p.cidade + " · " + PERFIS[p.perfil].rotulo)),
+            h("div", { class: "head-actions" },
+              r.fim ? null : h("button", { class: "btn ghost", disabled: !temResposta || ui.aguardando,
+                onclick: function () { ui.confirmarEncerrar = true; render(); } }, "Encerrar atendimento"))),
+          encerrar,
+          msgs,
+          ui.erro ? h("p", { class: "err", role: "alert" }, ui.erro) : null,
+          h("div", { class: "composer" }, ta,
+            h("button", { class: "btn", disabled: r.fim || ui.aguardando, onclick: enviar }, "Enviar"))),
+        cola(p))
+    ];
+  }
+
+  function ajustar(ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 140) + "px"; }
+
+  function telaAval() {
+    var id = ui.atual, r = estado.sessao.res[id], p = persona(id);
+    var topo = h("div", { class: "row" },
+      h("button", { class: "btn ghost", onclick: voltarPainel }, "← Clientes"),
+      chip(p.perfil), h("strong", null, p.nome + " · " + p.cidade),
+      r.aval || ui.avaliando ? chipTemp(temperamento(id)) : null);
+
+    if (ui.avaliando) {
+      return [topo, h("div", { class: "loading", role: "status" },
+        h("h2", null, "Avaliando o atendimento…"),
+        h("p", { class: "muted" }, "O instrutor virtual está lendo a conversa. Isso leva de alguns segundos a um minuto."))];
+    }
+    if (!r.aval) {
+      return [topo, h("div", { class: "notice warn", role: "alert" },
+        h("strong", null, "Não foi possível gerar a avaliação"),
+        h("p", null, ui.erroAval || "Tente de novo."),
+        h("div", { class: "row" }, h("button", { class: "btn", onclick: function () { avaliar(id); } }, "Tentar de novo")))];
+    }
+    var a = r.aval;
+    return [
+      topo,
+      h("section", { class: "eval" },
+        h("div", { class: "eval-top" },
+          h("div", { class: "big-score", style: "color:" + corNota(a.nota) }, fmt(a.nota), h("small", null, " / 10")),
+          h("div", { style: "display:grid;gap:6px;min-width:0;flex:1 1 220px" },
+            h("span", { class: "eyebrow" }, "Resultado"),
+            h("h2", null, a.resultado),
+            h("p", { class: "muted" }, "Objetivo: " + PERFIS[p.perfil].objetivo))),
+        h("div", { class: "eval-grid" },
+          h("div", { class: "panel" }, h("h3", null, "Critérios"),
+            a.criterios.map(function (c) {
+              return h("div", { class: "crit" },
+                h("div", { class: "crit-top" }, h("span", null, c.nome), h("span", null, c.nota + "/10")),
+                h("div", { class: "bar" }, h("i", { style: "width:" + (c.nota * 10) + "%;--c:" + corNota(c.nota) })),
+                c.comentario ? h("p", null, c.comentario) : null);
+            })),
+          h("div", { style: "display:grid;gap:16px;align-content:start;min-width:0" },
+            h("div", { class: "panel" }, h("h3", null, "Mandou bem"), h("ul", { class: "list" }, a.pontosFortes.map(function (t) { return h("li", null, t); }))),
+            h("div", { class: "panel" }, h("h3", null, "Para melhorar"), h("ul", { class: "list" }, a.melhorar.map(function (t) { return h("li", null, t); }))),
+            a.fraseExemplo ? h("div", { class: "panel" }, h("h3", null, "Você poderia ter dito"), h("p", { class: "example" }, a.fraseExemplo)) : null)),
+        h("details", { class: "panel" }, h("summary", null, h("strong", null, "Ver a conversa")),
+          h("div", { class: "transcript" }, r.msgs.map(function (m) {
+            return h("p", null, h("b", null, m.de === "atendente" ? "Você: " : p.nome + ": "), m.t);
+          }))),
+        h("div", { class: "row" }, h("button", { class: "btn", onclick: voltarPainel }, "Voltar para os clientes")))
+    ];
+  }
+
+  function render() {
+    app.replaceChildren();
+    var telas = { inicio: telaInicio, painel: telaPainel, chat: telaChat, aval: telaAval };
+    if (ui.view !== "inicio" && !estado.sessao) ui.view = "inicio";
+    anexar(app, telas[ui.view]());
+    if (ui.view === "chat") {
+      var box = document.getElementById("msgs"); if (box) box.scrollTop = box.scrollHeight;
+      var ta = document.getElementById("msg"); if (ta) ajustar(ta);
+    }
+  }
+
+  render();
+})();
+</script>

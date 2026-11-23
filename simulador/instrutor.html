@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap">
+<link rel="icon" type="image/png" href="/icone-infornet.png">
 <link rel="stylesheet" href="styles.css">
 <style>
 .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
@@ -151,7 +152,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
   // ---------- telas ----------
   function cabecalho(titulo, acoes) {
     return h("header", { class: "topbar" },
-      h("div", { style: "display:grid;gap:6px" }, h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Área do instrutor"), h("h1", null, titulo)),
+      h("div", { style: "display:grid;gap:8px" }, h("div", { class: "brand small" }, h("img", { src: "/logo-infornet.jpg", alt: "Infornet", width: "480", height: "340" })), h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Área do instrutor"), h("h1", null, titulo)),
       h("div", { class: "row" }, acoes));
   }
   function avisos() {
@@ -168,7 +169,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
   function telaLogin() {
     var campo = h("input", { id: "senha", type: "password", autocomplete: "current-password", required: true });
     return [
-      h("header", { class: "hero" }, h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Área do instrutor"), h("h1", null, "Resultados do treino")),
+      h("header", { class: "hero" }, h("div", { class: "brand" }, h("img", { src: "/logo-infornet.jpg", alt: "Infornet", width: "480", height: "340" })), h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Área do instrutor"), h("h1", null, "Resultados do treino")),
       h("form", { class: "start login", onsubmit: function (e) { e.preventDefault(); senha = campo.value; carregar(); } },
         h("div", { class: "field" }, h("label", { for: "senha" }, "Senha do instrutor"), campo),
         st.erro ? h("p", { class: "form-error", role: "alert" }, st.erro) : null,

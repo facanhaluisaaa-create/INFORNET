@@ -57,7 +57,8 @@ Escreva sempre em português. O nome correto da empresa é **Infornet** (não "I
 - O servidor (`api/`) chama a API do Claude (`lib/claude.js`) e guarda cada avaliação no Upstash Redis; dois links: `/` para os atendentes fazerem o teste e `/instrutor` (com senha) para ver o desempenho de cada atendente isoladamente.
 - Duração média do treino: cerca de 25 minutos por pessoa (uns 6 por cliente). Há cronômetro, aviso aos 7 minutos por cliente, limite de 14 mensagens do atendente e avaliação em segundo plano.
 - Variáveis na Vercel: `ANTHROPIC_API_KEY`, `CODIGO_TURMA`, `SENHA_INSTRUTOR` e as do Upstash Redis.
-- A logo oficial da Infornet ainda não foi recebida; a encontrada na internet não foi confirmada e foi retirada.
+- Logo oficial recebida em 23/11/2026: `simulador/logo-infornet.jpg` (fundo escuro, mostrada num bloco escuro) e `simulador/icone-infornet.png` (ícone da aba). Azul da marca usado como cor de destaque.
+- Versão de demonstração no claude.ai (artefato, sem servidor, sem área do instrutor): https://claude.ai/artifact/86B7hB9hGGH2Rfd8iG9Zcz; código em `artefato/simulador-infornet.html`.
 - Os clientes simulados não citam preços porque a tabela de planos ainda não chegou (pedido em `docs/pedido-informacoes-simulador.md`).
 
 ## Pendências

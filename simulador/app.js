@@ -118,6 +118,9 @@
   }
   function fmt(n) { return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
   function corNota(n) { return n >= 8 ? "var(--good)" : n >= 6 ? "var(--warn)" : "var(--bad)"; }
+  function logo(classe) {
+    return h("div", { class: "brand" + (classe ? " " + classe : "") }, h("img", { src: "/logo-infornet.jpg", alt: "Infornet", width: "480", height: "340" }));
+  }
   function chip(perfil) { return h("span", { class: "chip p-" + perfil }, CFG.perfis[perfil].rotulo); }
   function chipTemp(t) {
     var cor = t.nivel === 3 ? "var(--bad)" : t.nivel === 2 ? "var(--warn)" : "var(--good)";
@@ -291,6 +294,7 @@
     var campoCodigo = CFG.exigeCodigo ? h("input", { id: "codigo", type: "text", autocomplete: "off", placeholder: "Passado pelo instrutor", value: estado.codigo || "", required: true }) : null;
     return [
       h("header", { class: "hero" },
+        logo(),
         h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Simulações práticas"),
         h("h1", null, "Simulador de atendimento"),
         h("p", null, "Você vai atender 4 clientes pelo WhatsApp, um de cada perfil. Cada cliente aparece uma única vez no seu treino, e no próximo treino os clientes são outros. No fim de cada conversa, você recebe uma nota e dicas do que melhorar, e o resultado vai para o instrutor."),
@@ -384,6 +388,7 @@
     return [
       h("header", { class: "topbar" },
         h("div", { style: "display:grid;gap:8px" },
+          logo("small"),
           h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Nível " + (CFG.modos[s.modo] || CFG.modos.variado).rotulo),
           h("h1", null, estado.nome ? "Treino de " + estado.nome : "Seu treino")),
         h("div", { class: "progress" },
