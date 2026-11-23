@@ -17,7 +17,10 @@ http.createServer(async (req, res) => {
       const mod = await import(path.join(raiz, "api", nome + ".js"));
       return await mod.default(req, res);
     }
-    const arquivo = path.join(raiz, pathname === "/" ? "index.html" : pathname);
+    if (pathname === "/resultados") { res.writeHead(307, { Location: "/instrutor" }); return res.end(); }
+    // Igual à Vercel com cleanUrls: /instrutor abre instrutor.html
+    const nomeArquivo = pathname === "/" ? "index.html" : path.extname(pathname) ? pathname : pathname + ".html";
+    const arquivo = path.join(raiz, nomeArquivo);
     if (!arquivo.startsWith(raiz) || /^(node_modules|lib|api)$/.test(path.relative(raiz, arquivo).split(path.sep)[0])) throw new Error("fora");
     const dados = await readFile(arquivo);
     res.writeHead(200, { "Content-Type": tipos[path.extname(arquivo)] || "application/octet-stream" });

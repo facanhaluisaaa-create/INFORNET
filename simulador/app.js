@@ -319,13 +319,8 @@
       h("section", { class: "steps", "aria-label": "Como funciona" },
         h("div", { class: "step" }, h("b", null, "1. Escolha um cliente"), h("p", { class: "muted" }, "Os 4 perfis podem ser atendidos em qualquer ordem.")),
         h("div", { class: "step" }, h("b", null, "2. Atenda como no WhatsApp"), h("p", { class: "muted" }, "O cliente reage ao seu atendimento: pergunte, entenda e negocie.")),
-        h("div", { class: "step" }, h("b", null, "3. Encerre e veja a avaliação"), h("p", { class: "muted" }, "Nota de 0 a 10 em 5 critérios, com exemplo de resposta."))),
-      rodape()
+        h("div", { class: "step" }, h("b", null, "3. Encerre e veja a avaliação"), h("p", { class: "muted" }, "Nota de 0 a 10 em 5 critérios, com exemplo de resposta.")))
     ];
-  }
-
-  function rodape() {
-    return h("footer", { class: "foot" }, h("a", { href: "/resultados.html" }, "Área do instrutor"));
   }
 
   function telaPainel() {
@@ -397,8 +392,7 @@
           h("div", { class: "stat" }, h("span", null, "Média"), h("strong", m != null ? { style: "color:" + corNota(m) } : null, m != null ? fmt(m) : "–")))),
       resumo,
       h("section", { class: "grid", "aria-label": "Clientes do treino" }, cards),
-      feitos < 4 ? reinicio : null,
-      rodape()
+      feitos < 4 ? reinicio : null
     ];
   }
 

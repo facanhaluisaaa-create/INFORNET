@@ -1,13 +1,22 @@
 # Simulador de atendimento Infornet
 
-Site para a etapa prática do treinamento comercial. O atendente coloca o nome, atende 4 clientes simulados pelo WhatsApp (um de cada perfil, com temperamentos sorteados) e recebe uma avaliação. Cada avaliação fica salva e aparece para o instrutor em `/resultados.html`.
+Site para a etapa prática do treinamento comercial. O atendente coloca o nome, atende 4 clientes simulados pelo WhatsApp (um de cada perfil, com temperamentos sorteados) e recebe uma avaliação. Cada avaliação fica salva para o instrutor.
+
+## Os dois links
+
+| Para quem | Endereço | O que tem |
+|---|---|---|
+| Atendentes (alunos) | `https://SEU-SITE.vercel.app/` | O teste: nome, código da turma e os 4 clientes |
+| Instrutores | `https://SEU-SITE.vercel.app/instrutor` | Com senha: lista de atendentes e, ao clicar em um, o desempenho só dele (média, notas por critério e por perfil, treinos, cada conversa) |
+
+A página dos alunos não tem nenhum link para a área do instrutor. A página de cada atendente tem endereço próprio (`/instrutor?atendente=nome`), que dá para guardar ou mandar para outro instrutor (ele também vai precisar da senha).
 
 ## Como funciona
 
 | Parte | Arquivo |
 |---|---|
 | Página do atendente | `index.html`, `app.js`, `styles.css` |
-| Área do instrutor (resultados, filtro por nome, planilha CSV) | `resultados.html` |
+| Área do instrutor (atendentes, desempenho individual, planilha CSV) | `instrutor.html` |
 | Clientes, temperamentos e regras da Infornet | `lib/dados.js` |
 | Textos enviados ao Claude (cliente e avaliação) | `lib/prompts.js` |
 | Chamadas à API do Claude | `lib/claude.js` |

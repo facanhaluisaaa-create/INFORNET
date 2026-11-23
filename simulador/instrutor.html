@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resultados do Treino Infornet</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+<style>
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.filters .field { flex: 1 1 200px; }
+.filters select, .filters input {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 12px; width: 100%;
+}
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+table.res { width: 100%; border-collapse: collapse; font-size: .9rem; }
+table.res th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.res td { padding: 10px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+table.res tr:first-child td { border-top: 0; }
+table.res td.n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+table.res tbody tr.click { cursor: pointer; }
+table.res tbody tr.click:hover { background: var(--surface-2); }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.person {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px;
+  display: grid; gap: 4px; text-align: left; color: var(--ink); cursor: pointer; transition: border-color .15s ease;
+}
+.person:hover { border-color: var(--accent); }
+.person strong { font-family: var(--font-display); font-size: 1rem; }
+.person .big { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.person .go { color: var(--accent); font-weight: 600; font-size: .85rem; margin-top: 4px; }
+.login { max-width: 420px; }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 24px; text-align: center; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 2px; }
+.kpi span { font-size: .75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.kpi strong { font-family: var(--font-display); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.section { display: grid; gap: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+(function () {
+  "use strict";
+  var KEY = "infornet-instrutor-senha";
+  var CRITERIOS = ["Empatia e controle emocional", "Diagnóstico e perguntas", "Valor da Infornet", "Objeções e negociação", "Condução e fechamento"];
+  var NIVEIS = { variado: "Variado", iniciante: "Aquecimento", desafio: "Desafio" };
+  function nivel(m) { return NIVEIS[m] || m || "–"; }
+  var senha = "";
+  try { senha = sessionStorage.getItem(KEY) || ""; } catch (e) { /* sem armazenamento */ }
+  var st = { dados: null, erro: "", carregando: false, filtroNome: "", filtroPerfil: "", pessoa: null, aberto: null, apagar: null, avisoBanco: false };
+  var app = document.getElementById("app");
+
+  function h(tag, props) {
+    var e = document.createElement(tag); props = props || {};
+    Object.keys(props).forEach(function (k) {
+      var v = props[k]; if (v == null || v === false) return;
+      if (k === "class") e.className = v; else if (k === "style") e.setAttribute("style", v);
+      else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v);
+    });
+    for (var i = 2; i < arguments.length; i++) add(e, arguments[i]);
+    return e;
+  }
+  function add(e, k) { if (k == null || k === false) return; if (Array.isArray(k)) { k.forEach(function (x) { add(e, x); }); return; } e.append(k.nodeType ? k : document.createTextNode(String(k))); }
+  function fmt(n) { return n == null ? "–" : Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+  function cor(n) { return n == null ? "var(--muted)" : n >= 8 ? "var(--good)" : n >= 6 ? "var(--warn)" : "var(--bad)"; }
+  function mmss(seg) { if (seg == null || !isFinite(seg)) return "–"; seg = Math.max(0, Math.round(seg)); var m = Math.floor(seg / 60), x = seg % 60; return m + ":" + (x < 10 ? "0" : "") + x; }
+  function data(iso) { var d = new Date(iso); return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+  function dia(iso) { return new Date(iso).toLocaleDateString("pt-BR"); }
+  function chave(nome) { return String(nome || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " "); }
+  function media(lista, f) { var v = lista.map(f).filter(function (x) { return x != null && isFinite(x); }); return v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null; }
+  function chipPerfil(r) { return h("span", { class: "chip p-" + r.perfil }, r.perfilRotulo); }
+  function chipTemp(r) { var c = r.nivel === 3 ? "var(--bad)" : r.nivel === 2 ? "var(--warn)" : "var(--good)"; return h("span", { class: "chip", style: "--c:" + c }, r.temperamento); }
+
+  // ---------- endereço: /instrutor e /instrutor?atendente=Nome ----------
+  function lerEndereco() {
+    var q = new URLSearchParams(location.search);
+    st.pessoa = q.get("atendente") ? chave(q.get("atendente")) : null;
+    st.aberto = q.get("atendimento") || null;
+  }
+  function ir(pessoa, atendimento) {
+    var q = new URLSearchParams();
+    if (pessoa) q.set("atendente", pessoa);
+    if (atendimento) q.set("atendimento", atendimento);
+    history.pushState(null, "", location.pathname + (q.toString() ? "?" + q.toString() : ""));
+    lerEndereco(); st.apagar = null; render(); window.scrollTo(0, 0);
+  }
+  window.addEventListener("popstate", function () { lerEndereco(); render(); });
+  lerEndereco();
+
+  // ---------- dados ----------
+  async function carregar(extra) {
+    st.carregando = true; st.erro = ""; render();
+    try {
+      var resp = await fetch("/api/resultados", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ senha: senha }, extra || {})) });
+      var j = null; try { j = await resp.json(); } catch (e) { /* sem JSON */ }
+      if (!resp.ok) {
+        st.erro = (j && j.erro) || "Não foi possível carregar os resultados.";
+        if (resp.status === 401) { senha = ""; try { sessionStorage.removeItem(KEY); } catch (e) {} }
+        st.dados = null;
+      } else {
+        st.dados = j.resultados || []; st.avisoBanco = !j.bancoConfigurado;
+        try { sessionStorage.setItem(KEY, senha); } catch (e) {}
+      }
+    } catch (e) {
+      st.erro = "Sem conexão com o servidor. Tente de novo.";
+    } finally { st.carregando = false; render(); }
+  }
+
+  function pessoas() {
+    var g = {};
+    (st.dados || []).forEach(function (r) {
+      var k = chave(r.nome);
+      if (!g[k]) g[k] = { chave: k, nome: r.nome.trim(), lista: [] };
+      g[k].lista.push(r);
+    });
+    return Object.keys(g).map(function (k) {
+      var p = g[k], rs = p.lista;
+      // Mostra a grafia de nome mais usada pela pessoa (ex.: "Dilmara" em vez de "dilmára").
+      var contagem = {};
+      rs.forEach(function (r) { var n = r.nome.trim(); contagem[n] = (contagem[n] || 0) + 1; });
+      p.nome = Object.keys(contagem).sort(function (a, b) { return contagem[b] - contagem[a]; })[0];
+      p.qtd = rs.length;
+      p.media = media(rs, function (r) { return Number(r.nota); });
+      p.tempoMedio = media(rs, function (r) { return r.duracaoSeg; });
+      p.ultima = rs.reduce(function (a, r) { return r.data > a ? r.data : a; }, rs[0].data);
+      p.treinos = Object.keys(rs.reduce(function (o, r) { o[r.sessaoId || r.id] = 1; return o; }, {})).length;
+      return p;
+    }).sort(function (a, b) { return a.nome.localeCompare(b.nome, "pt-BR"); });
+  }
+
+  function csv(lista, arquivo) {
+    var linhas = [["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Nível do treino", "Tempo (min:seg)", "Nota", "Resultado"]
+      .concat(CRITERIOS).concat(["Pontos fortes", "Para melhorar"])];
+    lista.forEach(function (r) {
+      linhas.push([data(r.data), r.nome, r.perfilRotulo, r.cliente, r.temperamento, nivel(r.modo), mmss(r.duracaoSeg), String(r.nota).replace(".", ","), r.resultado]
+        .concat(r.criterios.map(function (c) { return c.nota; }))
+        .concat([r.pontosFortes.join(" | "), r.melhorar.join(" | ")]));
+    });
+    var texto = "﻿" + linhas.map(function (l) { return l.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(";"); }).join("\r\n");
+    var url = URL.createObjectURL(new Blob([texto], { type: "text/csv;charset=utf-8" }));
+    var a = h("a", { href: url, download: arquivo }); document.body.append(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  // ---------- telas ----------
+  function cabecalho(titulo, acoes) {
+    return h("header", { class: "topbar" },
+      h("div", { style: "display:grid;gap:6px" }, h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Área do instrutor"), h("h1", null, titulo)),
+      h("div", { class: "row" }, acoes));
+  }
+  function avisos() {
+    return [
+      st.avisoBanco ? h("div", { class: "notice warn" }, h("strong", null, "O banco de dados não está ligado"),
+        h("p", null, "Os resultados estão só na memória do servidor e podem sumir. Na Vercel, abra Storage, crie um banco Upstash Redis e conecte ao projeto.")) : null,
+      st.erro ? h("div", { class: "notice warn", role: "alert" }, h("p", null, st.erro)) : null
+    ];
+  }
+  function botaoAtualizar() {
+    return h("button", { class: "btn ghost", onclick: function () { carregar(); }, disabled: st.carregando }, st.carregando ? "Atualizando…" : "Atualizar");
+  }
+
+  function telaLogin() {
+    var campo = h("input", { id: "senha", type: "password", autocomplete: "current-password", required: true });
+    return [
+      h("header", { class: "hero" }, h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Área do instrutor"), h("h1", null, "Resultados do treino")),
+      h("form", { class: "start login", onsubmit: function (e) { e.preventDefault(); senha = campo.value; carregar(); } },
+        h("div", { class: "field" }, h("label", { for: "senha" }, "Senha do instrutor"), campo),
+        st.erro ? h("p", { class: "form-error", role: "alert" }, st.erro) : null,
+        h("button", { class: "btn", type: "submit", disabled: st.carregando }, st.carregando ? "Entrando…" : "Ver resultados"))
+    ];
+  }
+
+  function tabelaAtendimentos(lista, mostrarNome) {
+    var cols = ["Data"].concat(mostrarNome ? ["Atendente"] : []).concat(["Perfil", "Cliente", "Temperamento", "Resultado", "Tempo", "Nota"]);
+    return h("div", { class: "table-wrap" }, h("table", { class: "res" },
+      h("thead", null, h("tr", null, cols.map(function (t) { return h("th", null, t); }))),
+      h("tbody", null, lista.map(function (r) {
+        var abrir = function () { ir(chave(r.nome), r.id); };
+        return h("tr", { class: "click", tabindex: "0", onclick: abrir, onkeydown: function (e) { if (e.key === "Enter") abrir(); } },
+          h("td", null, data(r.data)), mostrarNome ? h("td", null, r.nome) : null, h("td", null, chipPerfil(r)), h("td", null, r.cliente),
+          h("td", null, chipTemp(r)), h("td", null, r.resultado), h("td", { class: "n", style: "font-weight:600" }, mmss(r.duracaoSeg)),
+          h("td", { class: "n", style: "color:" + cor(r.nota) }, fmt(r.nota)));
+      }))));
+  }
+
+  // Visão geral: todos os atendentes
+  function telaGeral() {
+    var todos = pessoas();
+    var nomeF = chave(st.filtroNome);
+    var lista = todos.filter(function (p) { return !nomeF || p.chave.indexOf(nomeF) !== -1; });
+    var campoNome = h("input", { id: "f-nome", type: "search", placeholder: "Buscar atendente", value: st.filtroNome,
+      oninput: function (e) { st.filtroNome = e.target.value; var alvo = document.getElementById("lista-pessoas"); if (alvo) { alvo.replaceChildren(); add(alvo, cardsPessoas()); } } });
+
+    function cardsPessoas() {
+      var nf = chave(st.filtroNome);
+      var ps = todos.filter(function (p) { return !nf || p.chave.indexOf(nf) !== -1; });
+      if (!ps.length) return h("div", { class: "empty" }, h("strong", null, "Nenhum atendente com esse nome"));
+      return h("div", { class: "people" }, ps.map(function (p) {
+        return h("button", { class: "person", type: "button", onclick: function () { ir(p.chave); } },
+          h("strong", null, p.nome),
+          h("span", { class: "big", style: "color:" + cor(p.media) }, fmt(p.media)),
+          h("span", { class: "muted" }, p.qtd + (p.qtd === 1 ? " atendimento" : " atendimentos") + " · " + p.treinos + (p.treinos === 1 ? " treino" : " treinos")),
+          h("span", { class: "muted" }, "Último em " + data(p.ultima)),
+          h("span", { class: "go" }, "Ver desempenho →"));
+      }));
+    }
+
+    var recentes = (st.dados || []).slice().sort(function (a, b) { return a.data < b.data ? 1 : -1; });
+    return [
+      cabecalho("Resultados do treino", [botaoAtualizar(), h("button", { class: "btn", onclick: function () { csv(recentes, "resultados-treino-infornet.csv"); }, disabled: !recentes.length }, "Baixar planilha (CSV)")]),
+      avisos(),
+      !todos.length ? h("div", { class: "empty" }, h("strong", null, "Nenhum resultado ainda"),
+        h("p", { class: "muted" }, "Assim que um atendente terminar um atendimento no simulador, a avaliação aparece aqui.")) : [
+        h("section", { class: "section" },
+          h("div", { class: "topbar" }, h("h2", null, "Atendentes (" + todos.length + ")"),
+            h("div", { class: "filters", style: "flex:0 1 320px" }, h("div", { class: "field" }, h("label", { for: "f-nome", class: "sr" }, "Buscar atendente"), campoNome))),
+          h("div", { id: "lista-pessoas" }, cardsPessoas())),
+        h("section", { class: "section" },
+          h("h2", null, "Últimos atendimentos"),
+          tabelaAtendimentos(recentes.slice(0, 15), true))
+      ]
+    ];
+  }
+
+  // Desempenho de uma pessoa
+  function telaPessoa(p) {
+    var rs = p.lista.slice().sort(function (a, b) { return a.data < b.data ? 1 : -1; });
+    var porPerfil = {};
+    rs.forEach(function (r) { (porPerfil[r.perfil] = porPerfil[r.perfil] || { rotulo: r.perfilRotulo, perfil: r.perfil, lista: [] }).lista.push(r); });
+    var sessoes = {};
+    rs.forEach(function (r) { var k = r.sessaoId || r.id; (sessoes[k] = sessoes[k] || []).push(r); });
+    var melhorar = [];
+    rs.slice(0, 4).forEach(function (r) { r.melhorar.forEach(function (t) { melhorar.push({ t: t, r: r }); }); });
+
+    return [
+      h("div", { class: "row" }, h("button", { class: "btn ghost", onclick: function () { ir(null); } }, "← Todos os atendentes")),
+      cabecalho(p.nome, [botaoAtualizar(), h("button", { class: "btn", onclick: function () { csv(rs, "treino-" + p.chave.replace(/\s+/g, "-") + ".csv"); } }, "Baixar planilha deste atendente")]),
+      avisos(),
+      h("div", { class: "kpis" },
+        h("div", { class: "kpi" }, h("span", null, "Média geral"), h("strong", { style: "color:" + cor(p.media) }, fmt(p.media))),
+        h("div", { class: "kpi" }, h("span", null, "Atendimentos"), h("strong", null, p.qtd)),
+        h("div", { class: "kpi" }, h("span", null, "Treinos"), h("strong", null, p.treinos)),
+        h("div", { class: "kpi" }, h("span", null, "Tempo médio por cliente"), h("strong", null, mmss(p.tempoMedio)))),
+      h("div", { class: "eval-grid" },
+        h("div", { class: "panel" }, h("h3", null, "Média por critério"),
+          CRITERIOS.map(function (nome) {
+            var m = media(rs, function (r) { var c = r.criterios.filter(function (x) { return x.nome === nome; })[0]; return c ? c.nota : null; });
+            return h("div", { class: "crit" },
+              h("div", { class: "crit-top" }, h("span", null, nome), h("span", null, fmt(m))),
+              h("div", { class: "bar" }, h("i", { style: "width:" + ((m || 0) * 10) + "%;--c:" + cor(m) })));
+          })),
+        h("div", { style: "display:grid;gap:16px;align-content:start;min-width:0" },
+          h("div", { class: "panel" }, h("h3", null, "Média por perfil de cliente"),
+            Object.keys(porPerfil).map(function (k) {
+              var g = porPerfil[k], m = media(g.lista, function (r) { return Number(r.nota); });
+              return h("div", { class: "crit-top" }, h("span", { class: "chip p-" + g.perfil }, g.rotulo),
+                h("span", { style: "color:" + cor(m) }, fmt(m) + " (" + g.lista.length + ")"));
+            })),
+          melhorar.length ? h("div", { class: "panel" }, h("h3", null, "O que melhorar (últimos atendimentos)"),
+            h("ul", { class: "list" }, melhorar.slice(0, 6).map(function (x) { return h("li", null, x.t, h("span", { class: "muted" }, " · " + x.r.perfilRotulo)); }))) : null)),
+      h("section", { class: "section" },
+        h("h2", null, "Treinos"),
+        h("div", { class: "table-wrap" }, h("table", { class: "res" },
+          h("thead", null, h("tr", null, ["Data", "Nível", "Clientes atendidos", "Tempo total", "Média"].map(function (t) { return h("th", null, t); }))),
+          h("tbody", null, Object.keys(sessoes).map(function (k) {
+            var l = sessoes[k], m = media(l, function (r) { return Number(r.nota); });
+            var tempo = l.reduce(function (a, r) { return a + (r.duracaoSeg || 0); }, 0);
+            return h("tr", null, h("td", null, dia(l[l.length - 1].data)), h("td", null, nivel(l[0].modo)),
+              h("td", null, l.length + " de 4"), h("td", { class: "n", style: "font-weight:600" }, mmss(tempo)),
+              h("td", { class: "n", style: "color:" + cor(m) }, fmt(m)));
+          }))))),
+      h("section", { class: "section" },
+        h("h2", null, "Atendimentos"),
+        tabelaAtendimentos(rs, false))
+    ];
+  }
+
+  // Um atendimento com a conversa
+  function telaAtendimento(r) {
+    var confirmar = st.apagar === r.id;
+    return h("section", { class: "eval" },
+      h("div", { class: "row" },
+        h("button", { class: "btn ghost", onclick: function () { ir(chave(r.nome)); } }, "← " + r.nome),
+        chipPerfil(r), chipTemp(r), h("strong", null, data(r.data))),
+      h("div", { class: "eval-top" },
+        h("div", { class: "big-score", style: "color:" + cor(r.nota) }, fmt(r.nota), h("small", null, " / 10")),
+        h("div", { style: "display:grid;gap:6px;min-width:0;flex:1 1 220px" },
+          h("span", { class: "eyebrow" }, "Resultado"), h("h2", null, r.resultado),
+          h("p", { class: "muted" }, "Atendente: " + r.nome + " · Cliente: " + r.cliente + " · Tempo de conversa: " + mmss(r.duracaoSeg)))),
+      h("div", { class: "eval-grid" },
+        h("div", { class: "panel" }, h("h3", null, "Critérios"), r.criterios.map(function (c) {
+          return h("div", { class: "crit" },
+            h("div", { class: "crit-top" }, h("span", null, c.nome), h("span", null, c.nota + "/10")),
+            h("div", { class: "bar" }, h("i", { style: "width:" + (c.nota * 10) + "%;--c:" + cor(c.nota) })),
+            c.comentario ? h("p", null, c.comentario) : null);
+        })),
+        h("div", { style: "display:grid;gap:16px;align-content:start;min-width:0" },
+          h("div", { class: "panel" }, h("h3", null, "Pontos fortes"), h("ul", { class: "list" }, r.pontosFortes.map(function (t) { return h("li", null, t); }))),
+          h("div", { class: "panel" }, h("h3", null, "Para melhorar"), h("ul", { class: "list" }, r.melhorar.map(function (t) { return h("li", null, t); }))),
+          r.fraseExemplo ? h("div", { class: "panel" }, h("h3", null, "Frase sugerida"), h("p", { class: "example" }, r.fraseExemplo)) : null)),
+      h("div", { class: "panel" }, h("h3", null, "Conversa"),
+        h("div", { class: "transcript" }, (r.conversa || []).map(function (m) {
+          return h("p", null, h("b", null, m.de === "atendente" ? r.nome + ": " : r.cliente.split(" (")[0] + ": "), m.t);
+        }))),
+      confirmar
+        ? h("div", { class: "confirm" }, h("span", null, "Apagar este resultado? Não dá para desfazer."),
+            h("button", { class: "btn danger", onclick: function () { var p = chave(r.nome); st.apagar = null; history.replaceState(null, "", location.pathname + "?atendente=" + encodeURIComponent(p)); lerEndereco(); carregar({ apagar: r.id }); } }, "Apagar"),
+            h("button", { class: "btn ghost", onclick: function () { st.apagar = null; render(); } }, "Cancelar"))
+        : h("div", { class: "row" }, h("button", { class: "btn link", onclick: function () { st.apagar = r.id; render(); } }, "Apagar este resultado")));
+  }
+
+  function render() {
+    app.replaceChildren();
+    if (!st.dados) { add(app, telaLogin()); return; }
+    if (st.aberto) {
+      var r = st.dados.filter(function (x) { return x.id === st.aberto; })[0];
+      if (r) { add(app, telaAtendimento(r)); return; }
+    }
+    if (st.pessoa) {
+      var p = pessoas().filter(function (x) { return x.chave === st.pessoa; })[0];
+      if (p) { add(app, telaPessoa(p)); return; }
+    }
+    add(app, telaGeral());
+  }
+
+  render();
+  if (senha) carregar();
+})();
+</script>
+</body>
+</html>

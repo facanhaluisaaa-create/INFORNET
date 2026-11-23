@@ -1,4 +1,8 @@
 {
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/resultados", "destination": "/instrutor", "permanent": false }
+  ],
   "functions": {
     "api/cliente.js": { "maxDuration": 60 },
     "api/avaliar.js": { "maxDuration": 120 }
