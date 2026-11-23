@@ -5,48 +5,33 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap">
 <style>
 /* Layout: painel de treino com 4 clientes → conversa com consulta rápida ao lado → avaliação do atendimento */
+/* Cores da logo da Infornet: fundo quase preto azulado, azul elétrico e branco. Tema escuro único. */
 :root {
-  --bg: #F2F4FA;
-  --surface: #FFFFFF;
-  --surface-2: #E7EBF5;
-  --ink: #0E1A3A;
-  --muted: #56607A;
-  --line: #D4DAEA;
-  --accent: #1A47E6;
+  --bg: #05141A;
+  --surface: #0C2029;
+  --surface-2: #132C36;
+  --ink: #EAF2F6;
+  --muted: #92A9B4;
+  --line: #1E3A46;
+  --accent: #1F4FFF;
   --accent-ink: #FFFFFF;
-  --accent-soft: #DFE5FB;
-  --me: #1A47E6;
+  --accent-text: #7E9DFF;
+  --accent-soft: #10295E;
+  --me: #1F4FFF;
   --me-ink: #FFFFFF;
-  --them: #FFFFFF;
-  --chat-bg: #E8ECF6;
+  --them: #132C36;
+  --chat-bg: #071A21;
   --logo-bg: #05141A;
-  --novo: #23784C;
-  --preco: #9A6512;
-  --insat: #B4410E;
-  --cancel: #A3214F;
-  --good: #23784C;
-  --warn: #9A6512;
-  --bad: #B42318;
+  --novo: #4FD08C;
+  --preco: #F2B84B;
+  --insat: #FF8A55;
+  --cancel: #FF6B9C;
+  --good: #4FD08C;
+  --warn: #F2B84B;
+  --bad: #FF6B6B;
   --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
   --font-body: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
   --radius: 14px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0C1222; --surface: #131B30; --surface-2: #1B2540; --ink: #E4E9F7; --muted: #95A0BC; --line: #29344F;
-    --accent: #6E8CFF; --accent-ink: #061030; --accent-soft: #1A2A5E;
-    --me: #1D45D6; --me-ink: #FFFFFF; --them: #1B2540; --chat-bg: #0F1628;
-    --novo: #5DC48D; --preco: #E2AB4E; --insat: #F07E4A; --cancel: #EC6A96;
-    --good: #5DC48D; --warn: #E2AB4E; --bad: #F2735F;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0C1222; --surface: #131B30; --surface-2: #1B2540; --ink: #E4E9F7; --muted: #95A0BC; --line: #29344F;
-  --accent: #6E8CFF; --accent-ink: #061030; --accent-soft: #1A2A5E;
-  --me: #1D45D6; --me-ink: #FFFFFF; --them: #1B2540; --chat-bg: #0F1628;
-  --novo: #5DC48D; --preco: #E2AB4E; --insat: #F07E4A; --cancel: #EC6A96;
-  --good: #5DC48D; --warn: #E2AB4E; --bad: #F2735F;
   color-scheme: dark;
 }
 
@@ -75,7 +60,7 @@ h3 { font-size: 1.02rem; font-weight: 600; }
 p { margin: 0; }
 .muted { color: var(--muted); }
 .eyebrow {
-  font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
+  font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-text);
 }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -89,8 +74,8 @@ button { cursor: pointer; }
 .btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
 .btn.ghost:hover { background: var(--surface-2); }
-.btn.link { background: transparent; color: var(--accent); padding: 6px 4px; }
-.btn.danger { background: var(--bad); color: #fff; }
+.btn.link { background: transparent; color: var(--accent-text); padding: 6px 4px; }
+.btn.danger { background: var(--bad); color: #05141A; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 /* Marca: a logo oficial tem fundo escuro, então fica num bloco escuro arredondado nos dois temas */
@@ -121,15 +106,15 @@ button { cursor: pointer; }
   display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px;
   padding: 10px 12px; cursor: pointer; background: var(--bg);
 }
-.mode:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
-.mode input { margin-top: 5px; accent-color: var(--accent); }
+.mode:has(input:checked) { border-color: var(--accent-text); background: var(--accent-soft); }
+.mode input { margin-top: 5px; accent-color: var(--accent-text); }
 .mode > span { display: grid; font-size: .86rem; line-height: 1.4; }
 .mode b { font-size: .95rem; }
 .temps { display: grid; gap: 10px; }
 .temps p { max-width: 70ch; }
 .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .step { display: grid; gap: 4px; padding: 14px 0; border-top: 2px solid var(--line); }
-.step b { font-family: var(--font-display); color: var(--accent); font-size: .85rem; }
+.step b { font-family: var(--font-display); color: var(--accent-text); font-size: .85rem; }
 @media (max-width: 640px) { .steps { grid-template-columns: 1fr; } }
 
 /* Perfis */
@@ -162,7 +147,7 @@ button { cursor: pointer; }
 .card-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
 .status { font-size: .85rem; font-weight: 600; color: var(--muted); }
 .status.done { color: var(--good); }
-.status.live { color: var(--accent); }
+.status.live { color: var(--accent-text); }
 .score-pill {
   font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums;
   padding: 2px 10px; border-radius: 8px; background: var(--surface-2);
@@ -195,7 +180,7 @@ button { cursor: pointer; }
 }
 .avatar {
   width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none;
-  font-family: var(--font-display); font-weight: 700; color: #fff; background: var(--c, var(--accent));
+  font-family: var(--font-display); font-weight: 700; color: #05141A; background: var(--c, var(--accent));
 }
 .chat-id { display: grid; min-width: 0; flex: 1 1 160px; }
 .chat-id strong { font-size: 1rem; }
@@ -395,11 +380,11 @@ button { cursor: pointer; }
       reage: "Se o atendente perguntar como ele fez o teste e orientar a testar perto do roteador ou no cabo, ele colabora. Se o atendente só disser que está tudo normal, ele fica bravo.",
       bom: "O atendente pergunta como o teste foi feito, explica com clareza, orienta um novo teste e verifica a conexão a distância." },
     { id: "i4", perfil: "insatisfeito", nome: "Joana", cidade: "Pedro II",
-      quem: "Cliente há 2 anos, 38 anos, confeiteira. Sempre pagou em dia.",
-      abertura: "Bom dia. Paguei o boleto hj cedo e a internet continua bloqueada. Preciso dela pra receber encomenda.",
-      escondido: "Atrasou 10 dias por um imprevisto: a filha ficou doente. Recebe encomendas de bolo pelo WhatsApp e está perdendo pedidos. Está chateada porque sempre pagou certinho.",
-      reage: "Se o atendente for respeitoso, verificar o pagamento e dar um prazo claro, ela fica tranquila. Se tratar como caloteira ou mandar esperar sem dizer quanto tempo, ela fica bem irritada.",
-      bom: "O atendente acolhe sem julgar, pede o comprovante, verifica a liberação e informa um prazo claro." },
+      quem: "Cliente há 2 anos, 38 anos, confeiteira. Recebe encomendas de bolo pelo WhatsApp.",
+      abertura: "Bom dia. Minha internet parou de vez desde ontem à noite. Preciso dela pra receber encomenda!",
+      escondido: "A luz do aparelho da fibra está vermelha, piscando. Ela já tirou da tomada e ligou de novo, e não resolveu. Ontem à tarde passou um caminhão alto na rua e mexeu nos fios. Está perdendo pedidos e usando os dados do celular.",
+      reage: "Se o atendente perguntar sobre as luzes do aparelho e o que ela já tentou, ela responde direitinho. Ela quer um prazo claro para o técnico. Se mandarem reiniciar de novo sem perguntar o que ela já fez, ou se não derem prazo, ela fica irritada.",
+      bom: "O atendente faz a triagem (pergunta das luzes e do que ela já tentou), verifica o sinal a distância, entende que luz vermelha indica sinal da fibra interrompido e que nesse caso precisa de técnico, abre o chamado com prazo claro e acolhe o prejuízo dela." },
 
     { id: "c1", perfil: "cancelamento", nome: "Antônio Carlos", cidade: "Campo Maior",
       quem: "Cliente há 3 anos, 47 anos. Perdeu o emprego há dois meses.",
@@ -614,6 +599,12 @@ button { cursor: pointer; }
       "",
       '- "resultado": um destes: "Venda fechada", "Cliente retido", "Cancelamento", "Problema resolvido", "Encaminhado", "Sem desfecho".',
       '- "criterios": exatamente estes 5, nesta ordem: ' + CRITERIOS.map(function (c) { return '"' + c + '"'; }).join(", ") + ". Nota inteira de 0 a 10 e um comentário de uma frase citando algo concreto da conversa.",
+      "  O que cada critério observa (são os pilares do treinamento):",
+      "  " + CRITERIOS[0] + ": cordialidade, escuta ativa, reconhecer o sentimento do cliente e manter a calma com cliente difícil, sem discutir.",
+      "  " + CRITERIOS[1] + ": investigar a necessidade antes de oferecer (SPIN: situação, problema, implicação, necessidade); na venda, descobrir orçamento, quem decide e prazo (BANT); na reclamação técnica, fazer a triagem antes de mandar técnico.",
+      "  " + CRITERIOS[2] + ": comunicar os diferenciais da Infornet ligados ao que o cliente precisa e usar conhecimento técnico básico (Wi-Fi, roteador, fibra) em linguagem simples.",
+      "  " + CRITERIOS[3] + ": responder objeções de preço e pedidos de cancelamento com argumento de valor, usar a escada de desconto aos poucos e não prometer o que não pode cumprir.",
+      "  " + CRITERIOS[4] + ": comunicação pelo WhatsApp (mensagens claras, curtas, sem erros e sem textão) e terminar com um próximo passo claro (contratação, prazo, retorno combinado).",
       '- "nota": nota geral de 0 a 10, com uma casa decimal, coerente com os critérios e com o desfecho.',
       '- "pontosFortes" e "melhorar": 2 itens cada, frases curtas e específicas.',
       '- "fraseExemplo": uma mensagem pronta que o atendente poderia ter enviado no momento mais importante da conversa, no tom do WhatsApp.',
@@ -765,7 +756,7 @@ button { cursor: pointer; }
         logo(),
         h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Simulações práticas"),
         h("h1", null, "Simulador de atendimento"),
-        h("p", null, "Você vai atender 4 clientes pelo WhatsApp, um de cada perfil. Cada cliente aparece uma única vez no seu treino, e no próximo treino os clientes são outros. No fim de cada conversa, você recebe uma nota e dicas do que melhorar.")),
+        h("p", null, "Você vai atender 4 clientes pelo WhatsApp, um de cada perfil. Cada cliente aparece uma única vez no seu treino, e no próximo treino os clientes são outros. No fim de cada conversa, você recebe uma avaliação preliminar com dicas do que melhorar. A avaliação final é feita pelo instrutor.")),
       avisoClaude(),
       h("form", { class: "start", onsubmit: comecar },
         h("div", { class: "field" }, h("label", { for: "nome" }, "Seu nome"), input),
@@ -869,6 +860,11 @@ button { cursor: pointer; }
         h("div", { class: "ladder" }, [10, 15, 20, 30, 50].map(function (n) { return h("span", { style: "--s:" + (n * 0.6) }, n + "%"); })),
         h("p", { class: "muted" }, "Comece pelo menor. 50% é o teto. Mensalidade grátis não.")),
       h("section", null, h("h3", null, "Se o desconto não resolver"), h("p", null, "Troca do Wi-Fi 6 por Wi-Fi 7 bonificado.")),
+      h("section", null, h("h3", null, "Básico de Wi-Fi e fibra"),
+        h("ul", null, h("li", null, "Paredes e distância enfraquecem o Wi-Fi: peça um teste perto do roteador ou no cabo"),
+          h("li", null, "Rede 5 GHz: mais rápida, alcança menos. Rede 2.4 GHz: alcança mais longe, é mais lenta"),
+          h("li", null, "Muitos aparelhos ao mesmo tempo dividem a velocidade"),
+          h("li", null, "Luz vermelha no aparelho da fibra: o sinal não está chegando, normalmente precisa de técnico"))),
       h("section", null, h("h3", null, "Diferenciais"),
         h("ul", null, h("li", null, "Atendimento local, rápido e pessoal"), h("li", null, "Chamado resolvido em cerca de 2 horas"),
           h("li", null, "Mesmo sinal em todos os bairros"), h("li", null, "Rede com capacidade sobrando"))),
@@ -948,7 +944,7 @@ button { cursor: pointer; }
         h("div", { class: "eval-top" },
           h("div", { class: "big-score", style: "color:" + corNota(a.nota) }, fmt(a.nota), h("small", null, " / 10")),
           h("div", { style: "display:grid;gap:6px;min-width:0;flex:1 1 220px" },
-            h("span", { class: "eyebrow" }, "Resultado"),
+            h("span", { class: "eyebrow" }, "Avaliação preliminar da IA"),
             h("h2", null, a.resultado),
             h("p", { class: "muted" }, "Objetivo: " + PERFIS[p.perfil].objetivo))),
         h("div", { class: "eval-grid" },

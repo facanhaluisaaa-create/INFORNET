@@ -34,3 +34,22 @@ export async function apagarResultado(id) {
     if (r.id === id) await redis.lrem(CHAVE, 1, typeof x === "string" ? x : JSON.stringify(x));
   }
 }
+
+// Acrescenta dados a um resultado já salvo (ex.: a avaliação final do instrutor).
+export async function atualizarResultado(id, mudancas) {
+  if (!redis) {
+    const r = memoria.find((x) => x.id === id);
+    if (!r) return false;
+    Object.assign(r, mudancas);
+    return true;
+  }
+  const itens = await redis.lrange(CHAVE, 0, -1);
+  for (let i = 0; i < itens.length; i++) {
+    const r = typeof itens[i] === "string" ? JSON.parse(itens[i]) : itens[i];
+    if (r.id === id) {
+      await redis.lset(CHAVE, i, JSON.stringify({ ...r, ...mudancas }));
+      return true;
+    }
+  }
+  return false;
+}

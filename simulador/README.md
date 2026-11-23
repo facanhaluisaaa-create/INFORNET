@@ -9,6 +9,8 @@ Site para a etapa prática do treinamento comercial. O atendente coloca o nome, 
 | Atendentes (alunos) | `https://SEU-SITE.vercel.app/` | O teste: nome, código da turma e os 4 clientes |
 | Instrutores | `https://SEU-SITE.vercel.app/instrutor` | Com senha: lista de atendentes e, ao clicar em um, o desempenho só dele (média, notas por critério e por perfil, treinos, cada conversa) |
 
+A nota que a IA dá ao atendente é preliminar. Na área do instrutor, cada atendimento tem um campo para a avaliação final (nota, comentário e quem avaliou), e as médias passam a usar essa nota.
+
 A página dos alunos não tem nenhum link para a área do instrutor. A página de cada atendente tem endereço próprio (`/instrutor?atendente=nome`), que dá para guardar ou mandar para outro instrutor (ele também vai precisar da senha).
 
 ## Como funciona

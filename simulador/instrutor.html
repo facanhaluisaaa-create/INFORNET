@@ -29,10 +29,10 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px;
   display: grid; gap: 4px; text-align: left; color: var(--ink); cursor: pointer; transition: border-color .15s ease;
 }
-.person:hover { border-color: var(--accent); }
+.person:hover { border-color: var(--accent-text); }
 .person strong { font-family: var(--font-display); font-size: 1rem; }
 .person .big { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.person .go { color: var(--accent); font-weight: 600; font-size: .85rem; margin-top: 4px; }
+.person .go { color: var(--accent-text); font-weight: 600; font-size: .85rem; margin-top: 4px; }
 .login { max-width: 420px; }
 .empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 24px; text-align: center; }
 .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -41,6 +41,13 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
 .kpi span { font-size: .75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
 .kpi strong { font-family: var(--font-display); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .section { display: grid; gap: 12px; }
+.tag-nota { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pend { color: var(--warn); font-weight: 600; font-size: .85rem; }
+.panel.final { border-color: var(--accent-text); }
+.panel.final textarea, .panel.final input {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 9px 12px; width: 100%; font: inherit; color: inherit;
+}
+.panel.final .field { display: grid; gap: 6px; }
 </style>
 </head>
 <body>
@@ -54,7 +61,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
   function nivel(m) { return NIVEIS[m] || m || "–"; }
   var senha = "";
   try { senha = sessionStorage.getItem(KEY) || ""; } catch (e) { /* sem armazenamento */ }
-  var st = { dados: null, erro: "", carregando: false, filtroNome: "", filtroPerfil: "", pessoa: null, aberto: null, apagar: null, avisoBanco: false };
+  var st = { dados: null, erro: "", carregando: false, filtroNome: "", filtroPerfil: "", pessoa: null, aberto: null, apagar: null, editando: null, avisoBanco: false };
   var app = document.getElementById("app");
 
   function h(tag, props) {
@@ -75,6 +82,9 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
   function dia(iso) { return new Date(iso).toLocaleDateString("pt-BR"); }
   function chave(nome) { return String(nome || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " "); }
   function media(lista, f) { var v = lista.map(f).filter(function (x) { return x != null && isFinite(x); }); return v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null; }
+  // A nota que vale é a do instrutor; sem ela, a preliminar da IA.
+  function notaFinal(r) { return r.instrutor ? Number(r.instrutor.nota) : Number(r.nota); }
+  function tagNota(r) { return h("small", { class: "tag-nota" }, r.instrutor ? "final" : "IA"); }
   function chipPerfil(r) { return h("span", { class: "chip p-" + r.perfil }, r.perfilRotulo); }
   function chipTemp(r) { var c = r.nivel === 3 ? "var(--bad)" : r.nivel === 2 ? "var(--warn)" : "var(--good)"; return h("span", { class: "chip", style: "--c:" + c }, r.temperamento); }
 
@@ -127,7 +137,8 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
       rs.forEach(function (r) { var n = r.nome.trim(); contagem[n] = (contagem[n] || 0) + 1; });
       p.nome = Object.keys(contagem).sort(function (a, b) { return contagem[b] - contagem[a]; })[0];
       p.qtd = rs.length;
-      p.media = media(rs, function (r) { return Number(r.nota); });
+      p.media = media(rs, notaFinal);
+      p.pendentes = rs.filter(function (r) { return !r.instrutor; }).length;
       p.tempoMedio = media(rs, function (r) { return r.duracaoSeg; });
       p.ultima = rs.reduce(function (a, r) { return r.data > a ? r.data : a; }, rs[0].data);
       p.treinos = Object.keys(rs.reduce(function (o, r) { o[r.sessaoId || r.id] = 1; return o; }, {})).length;
@@ -136,10 +147,10 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
   }
 
   function csv(lista, arquivo) {
-    var linhas = [["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Nível do treino", "Tempo (min:seg)", "Nota", "Resultado"]
+    var linhas = [["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Nível do treino", "Tempo (min:seg)", "Nota da IA", "Nota final do instrutor", "Comentário do instrutor", "Avaliado por", "Resultado"]
       .concat(CRITERIOS).concat(["Pontos fortes", "Para melhorar"])];
     lista.forEach(function (r) {
-      linhas.push([data(r.data), r.nome, r.perfilRotulo, r.cliente, r.temperamento, nivel(r.modo), mmss(r.duracaoSeg), String(r.nota).replace(".", ","), r.resultado]
+      linhas.push([data(r.data), r.nome, r.perfilRotulo, r.cliente, r.temperamento, nivel(r.modo), mmss(r.duracaoSeg), String(r.nota).replace(".", ","), r.instrutor ? String(r.instrutor.nota).replace(".", ",") : "", r.instrutor ? r.instrutor.comentario : "", r.instrutor ? r.instrutor.avaliador : "", r.resultado]
         .concat(r.criterios.map(function (c) { return c.nota; }))
         .concat([r.pontosFortes.join(" | "), r.melhorar.join(" | ")]));
     });
@@ -186,7 +197,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
         return h("tr", { class: "click", tabindex: "0", onclick: abrir, onkeydown: function (e) { if (e.key === "Enter") abrir(); } },
           h("td", null, data(r.data)), mostrarNome ? h("td", null, r.nome) : null, h("td", null, chipPerfil(r)), h("td", null, r.cliente),
           h("td", null, chipTemp(r)), h("td", null, r.resultado), h("td", { class: "n", style: "font-weight:600" }, mmss(r.duracaoSeg)),
-          h("td", { class: "n", style: "color:" + cor(r.nota) }, fmt(r.nota)));
+          h("td", { class: "n", style: "color:" + cor(notaFinal(r)) }, fmt(notaFinal(r)), " ", tagNota(r)));
       }))));
   }
 
@@ -208,6 +219,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
           h("span", { class: "big", style: "color:" + cor(p.media) }, fmt(p.media)),
           h("span", { class: "muted" }, p.qtd + (p.qtd === 1 ? " atendimento" : " atendimentos") + " · " + p.treinos + (p.treinos === 1 ? " treino" : " treinos")),
           h("span", { class: "muted" }, "Último em " + data(p.ultima)),
+          p.pendentes ? h("span", { class: "pend" }, p.pendentes + (p.pendentes === 1 ? " atendimento sem avaliação final" : " atendimentos sem avaliação final")) : h("span", { class: "muted" }, "Todos com avaliação final"),
           h("span", { class: "go" }, "Ver desempenho →"));
       }));
     }
@@ -259,7 +271,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
         h("div", { style: "display:grid;gap:16px;align-content:start;min-width:0" },
           h("div", { class: "panel" }, h("h3", null, "Média por perfil de cliente"),
             Object.keys(porPerfil).map(function (k) {
-              var g = porPerfil[k], m = media(g.lista, function (r) { return Number(r.nota); });
+              var g = porPerfil[k], m = media(g.lista, notaFinal);
               return h("div", { class: "crit-top" }, h("span", { class: "chip p-" + g.perfil }, g.rotulo),
                 h("span", { style: "color:" + cor(m) }, fmt(m) + " (" + g.lista.length + ")"));
             })),
@@ -270,7 +282,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
         h("div", { class: "table-wrap" }, h("table", { class: "res" },
           h("thead", null, h("tr", null, ["Data", "Nível", "Clientes atendidos", "Tempo total", "Média"].map(function (t) { return h("th", null, t); }))),
           h("tbody", null, Object.keys(sessoes).map(function (k) {
-            var l = sessoes[k], m = media(l, function (r) { return Number(r.nota); });
+            var l = sessoes[k], m = media(l, notaFinal);
             var tempo = l.reduce(function (a, r) { return a + (r.duracaoSeg || 0); }, 0);
             return h("tr", null, h("td", null, dia(l[l.length - 1].data)), h("td", null, nivel(l[0].modo)),
               h("td", null, l.length + " de 4"), h("td", { class: "n", style: "font-weight:600" }, mmss(tempo)),
@@ -280,6 +292,40 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
         h("h2", null, "Atendimentos"),
         tabelaAtendimentos(rs, false))
     ];
+  }
+
+  // Avaliação final, feita por uma pessoa (a IA dá só a preliminar)
+  function painelInstrutor(r) {
+    if (r.instrutor && st.editando !== r.id) {
+      var i = r.instrutor;
+      return h("div", { class: "panel final" },
+        h("div", { class: "crit-top" }, h("h3", null, "Avaliação final do instrutor"),
+          h("button", { class: "btn link", onclick: function () { st.editando = r.id; render(); } }, "Editar")),
+        h("div", { class: "row" }, h("span", { class: "big-score", style: "font-size:2.2rem;color:" + cor(i.nota) }, fmt(i.nota), h("small", null, " / 10")),
+          h("span", { class: "muted" }, (i.avaliador ? "Por " + i.avaliador + " · " : "") + data(i.data))),
+        i.comentario ? h("p", { style: "white-space:pre-wrap" }, i.comentario) : null);
+    }
+    var avaliador = "";
+    try { avaliador = sessionStorage.getItem("infornet-instrutor-nome") || ""; } catch (e) {}
+    var campoNota = h("input", { id: "nota-final", type: "number", min: "0", max: "10", step: "0.5", required: true, value: r.instrutor ? r.instrutor.nota : "" , placeholder: "0 a 10" });
+    var campoComent = h("textarea", { id: "coment-final", rows: "3", placeholder: "O que a pessoa fez bem e o que precisa praticar" }, r.instrutor ? r.instrutor.comentario : "");
+    var campoNome = h("input", { id: "avaliador", type: "text", value: (r.instrutor && r.instrutor.avaliador) || avaliador, placeholder: "Seu nome" });
+    return h("form", { class: "panel final", onsubmit: async function (e) {
+        e.preventDefault();
+        try { sessionStorage.setItem("infornet-instrutor-nome", campoNome.value.trim()); } catch (er) {}
+        st.editando = null;
+        await carregar({ avaliacaoInstrutor: { id: r.id, nota: campoNota.value, comentario: campoComent.value, avaliador: campoNome.value } });
+      } },
+      h("h3", null, "Avaliação final do instrutor"),
+      h("p", { class: "muted" }, "A nota da IA é preliminar. Leia a conversa e registre a nota que vale para o treinamento."),
+      h("div", { class: "filters" },
+        h("div", { class: "field", style: "flex:0 1 140px" }, h("label", { for: "nota-final" }, "Nota final"), campoNota),
+        h("div", { class: "field" }, h("label", { for: "avaliador" }, "Avaliado por"), campoNome)),
+      h("div", { class: "field" }, h("label", { for: "coment-final" }, "Comentário para o atendente"), campoComent),
+      h("div", { class: "row" },
+        h("button", { class: "btn", type: "submit", disabled: st.carregando }, st.carregando ? "Salvando…" : "Salvar avaliação final"),
+        r.instrutor ? h("button", { class: "btn ghost", type: "button", onclick: function () { st.editando = null; render(); } }, "Cancelar") : null,
+        h("button", { class: "btn ghost", type: "button", onclick: function () { campoNota.value = r.nota; campoNota.focus(); } }, "Usar a nota da IA (" + fmt(r.nota) + ")")));
   }
 
   // Um atendimento com a conversa
@@ -292,10 +338,11 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
       h("div", { class: "eval-top" },
         h("div", { class: "big-score", style: "color:" + cor(r.nota) }, fmt(r.nota), h("small", null, " / 10")),
         h("div", { style: "display:grid;gap:6px;min-width:0;flex:1 1 220px" },
-          h("span", { class: "eyebrow" }, "Resultado"), h("h2", null, r.resultado),
+          h("span", { class: "eyebrow" }, "Avaliação preliminar da IA"), h("h2", null, r.resultado),
           h("p", { class: "muted" }, "Atendente: " + r.nome + " · Cliente: " + r.cliente + " · Tempo de conversa: " + mmss(r.duracaoSeg)))),
+      painelInstrutor(r),
       h("div", { class: "eval-grid" },
-        h("div", { class: "panel" }, h("h3", null, "Critérios"), r.criterios.map(function (c) {
+        h("div", { class: "panel" }, h("h3", null, "Critérios da IA (preliminar)"), r.criterios.map(function (c) {
           return h("div", { class: "crit" },
             h("div", { class: "crit-top" }, h("span", null, c.nome), h("span", null, c.nota + "/10")),
             h("div", { class: "bar" }, h("i", { style: "width:" + (c.nota * 10) + "%;--c:" + cor(c.nota) })),
