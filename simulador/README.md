@@ -16,6 +16,17 @@ Site para a etapa prática do treinamento comercial. O atendente coloca o nome, 
 
 Os detalhes escondidos de cada cliente ficam só no servidor: o atendente não consegue vê-los pelo navegador.
 
+## Tempo do treino
+
+O treino foi pensado para cerca de 25 minutos por pessoa (uns 6 minutos por cliente):
+
+- A página mostra um cronômetro do treino e de cada cliente. Passados 7 minutos com o mesmo cliente, aparece um aviso para encaminhar o fechamento.
+- O cliente simulado é orientado a decidir em 8 a 12 mensagens do atendente. A partir de 14 mensagens, ele fecha a conversa.
+- A avaliação roda em segundo plano: o atendente pode ir para o próximo cliente enquanto ela fica pronta.
+- O tempo de cada conversa aparece na área do instrutor e na planilha.
+
+Para mudar esses números, edite `TEMPO_TREINO_MIN`, `TEMPO_CLIENTE_MIN` e `ALERTA_CLIENTE_MIN` em `app.js` e `LIMITE_MENSAGENS_ATENDENTE` em `lib/claude.js`.
+
 ## Publicar na Vercel (uma vez só)
 
 1. Crie uma conta em vercel.com entrando com o GitHub.

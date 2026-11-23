@@ -55,6 +55,7 @@ Escreva sempre em português. O nome correto da empresa é **Infornet** (não "I
 - Site para a etapa prática (módulo 4), feito para publicar na Vercel com Root Directory `simulador`. Instruções em `simulador/README.md`.
 - 4 perfis × 4 clientes cada (`lib/dados.js`) e 6 temperamentos sorteados (tranquilo a muito difícil); dentro de um treino, cliente e temperamento não se repetem.
 - O servidor (`api/`) chama a API do Claude (`lib/claude.js`) e guarda cada avaliação no Upstash Redis; o instrutor vê tudo em `/resultados.html` com senha.
+- Duração média do treino: cerca de 25 minutos por pessoa (uns 6 por cliente). Há cronômetro, aviso aos 7 minutos por cliente, limite de 14 mensagens do atendente e avaliação em segundo plano.
 - Variáveis na Vercel: `ANTHROPIC_API_KEY`, `CODIGO_TURMA`, `SENHA_INSTRUTOR` e as do Upstash Redis.
 - A logo oficial da Infornet ainda não foi recebida; a encontrada na internet não foi confirmada e foi retirada.
 - Os clientes simulados não citam preços porque a tabela de planos ainda não chegou (pedido em `docs/pedido-informacoes-simulador.md`).

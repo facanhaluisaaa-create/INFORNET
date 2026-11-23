@@ -6,6 +6,7 @@ import { CRITERIOS } from "./dados.js";
 import { regrasCliente, promptAvaliacao } from "./prompts.js";
 
 const MODELO = "claude-opus-5-5";
+const LIMITE_MENSAGENS_ATENDENTE = 14;
 const client = new Anthropic();
 
 export class ErroClaude extends Error {
@@ -30,6 +31,14 @@ export async function responderComoCliente(persona, temperamento, msgs) {
   const messages = [{ role: "user", content: "(O cliente abre a conversa no WhatsApp.)" }].concat(
     msgs.map((m) => ({ role: m.de === "atendente" ? "user" : "assistant", content: m.t }))
   );
+  // O treino tem cerca de 25 minutos para 4 clientes. Passado o limite de mensagens, o cliente fecha a conversa.
+  const enviadasPeloAtendente = msgs.filter((m) => m.de === "atendente").length;
+  if (enviadasPeloAtendente >= LIMITE_MENSAGENS_ATENDENTE) {
+    messages.push({
+      role: "system",
+      content: "A conversa já passou do tempo do treino. Nesta resposta, chegue a um desfecho coerente com o atendimento até aqui (aceitar, recusar, cancelar ou combinar um próximo passo), despeça-se e termine com [FIM].",
+    });
+  }
   try {
     const resp = await client.beta.messages.create({
       model: MODELO,

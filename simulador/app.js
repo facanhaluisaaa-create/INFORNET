@@ -5,6 +5,8 @@
 
   var CFG = null;           // vem de /api/config
   var KEY = "infornet-simulador-v2";
+  // Ritmo do treino: cerca de 25 minutos para os 4 clientes, uns 6 por cliente.
+  var TEMPO_TREINO_MIN = 25, TEMPO_CLIENTE_MIN = 6, ALERTA_CLIENTE_MIN = 7;
 
   // ---------- estado salvo no navegador (para continuar depois de recarregar) ----------
   function carregar() {
@@ -18,7 +20,7 @@
   if (!Array.isArray(estado.usados)) estado.usados = [];
 
   var ui = { view: "carregando", atual: null, rascunho: "", erro: "", aguardando: false, confirmarEncerrar: false,
-             confirmarReinicio: false, avaliando: false, erroAval: "", erroInicio: "", copiado: "", mostrarTexto: false, iniciando: false };
+             confirmarReinicio: false, avaliando: {}, errosAval: {}, erroInicio: "", copiado: "", mostrarTexto: false, iniciando: false };
   var ctl = null;
 
   // ---------- servidor ----------
@@ -129,6 +131,39 @@
     var c = concluidos(); if (!c.length) return null;
     return c.reduce(function (a, id) { return a + Number(estado.sessao.res[id].aval.nota || 0); }, 0) / c.length;
   }
+  function mmss(seg) {
+    seg = Math.max(0, Math.floor(seg));
+    var m = Math.floor(seg / 60), s = seg % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+  function segCliente(r) {
+    if (!r || !r.inicioTs) return 0;
+    return ((r.fimTs || Date.now()) - r.inicioTs) / 1000;
+  }
+  function segTreino() {
+    var s = estado.sessao; if (!s) return 0;
+    return ((s.fimTs || Date.now()) - Date.parse(s.inicio)) / 1000;
+  }
+  // Atualiza só os cronômetros na tela, sem redesenhar a página.
+  function tick() {
+    if (!CFG || !estado.sessao) return;
+    var c = document.getElementById("cron");
+    if (c && ui.atual) {
+      var r = estado.sessao.res[ui.atual], seg = segCliente(r);
+      c.textContent = mmss(seg);
+      c.classList.toggle("over", !r.fim && seg >= ALERTA_CLIENTE_MIN * 60);
+      var al = document.getElementById("alerta-tempo");
+      if (al) al.hidden = r.fim || seg < ALERTA_CLIENTE_MIN * 60;
+    }
+    var t = document.getElementById("cron-total");
+    if (t) {
+      var total = segTreino();
+      t.textContent = mmss(total);
+      t.style.color = total >= TEMPO_TREINO_MIN * 60 && !estado.sessao.fimTs ? "var(--bad)" : "";
+    }
+  }
+  setInterval(tick, 1000);
+
   function limparResposta(texto, p) {
     var fim = /\[FIM\]/i.test(texto);
     var t = texto.replace(/\[FIM\]/gi, "").trim();
@@ -162,7 +197,8 @@
   function abrirCliente(id) {
     var r = estado.sessao.res[id], p = persona(id);
     if (r.estado === "concluido") { ui.view = "aval"; ui.atual = id; render(); return; }
-    if (r.estado === "pendente") { r.estado = "andamento"; r.msgs = [{ de: "cliente", t: p.abertura }]; salvar(); }
+    if (r.estado === "pendente") { r.estado = "andamento"; r.msgs = [{ de: "cliente", t: p.abertura }]; r.inicioTs = Date.now(); salvar(); }
+    if (r.fim && !r.aval) { avaliar(id); return; }
     ui.view = "chat"; ui.atual = id; ui.rascunho = ""; ui.erro = ""; ui.confirmarEncerrar = false;
     render();
     var ta = document.getElementById("msg"); if (ta) ta.focus();
@@ -170,7 +206,7 @@
 
   function voltarPainel() {
     if (ctl) { ctl.abort(); ctl = null; }
-    ui.view = "painel"; ui.atual = null; ui.confirmarEncerrar = false; ui.erroAval = ""; ui.copiado = "";
+    ui.view = "painel"; ui.atual = null; ui.confirmarEncerrar = false; ui.copiado = "";
     render();
   }
 
@@ -186,7 +222,7 @@
       var limpo = limparResposta(resp.texto || "", p);
       if (!limpo.partes.length && !limpo.fim) throw { mensagem: "O cliente não respondeu. Envie de novo." };
       limpo.partes.forEach(function (t) { r.msgs.push({ de: "cliente", t: t }); });
-      if (limpo.fim) r.fim = true;
+      if (limpo.fim) { r.fim = true; r.fimTs = Date.now(); }
     } catch (e) {
       r.msgs.pop();
       if (!e || !e.cancelado) { ui.rascunho = texto; ui.erro = e.mensagem || "Algo deu errado. Envie de novo."; }
@@ -196,24 +232,26 @@
     }
   }
 
+  // A avaliação roda em segundo plano: o atendente pode voltar e atender o próximo cliente enquanto isso.
   async function avaliar(id) {
-    var r = estado.sessao.res[id];
+    var s = estado.sessao, r = s.res[id];
     if (ctl) { ctl.abort(); ctl = null; }
-    ui.view = "aval"; ui.atual = id; ui.confirmarEncerrar = false; ui.erroAval = "";
-    r.fim = true; salvar();
-    if (r.aval) { render(); return; }
-    ui.avaliando = true; render();
+    ui.view = "aval"; ui.atual = id; ui.confirmarEncerrar = false;
+    r.fim = true; if (!r.fimTs) r.fimTs = Date.now(); salvar();
+    if (r.aval || ui.avaliando[id]) { render(); return; }
+    ui.avaliando[id] = true; delete ui.errosAval[id]; render();
     try {
       var resp = await api("/api/avaliar", {
-        codigo: estado.codigo, nome: estado.nome, sessaoId: estado.sessao.id, modo: estado.sessao.modo,
-        personaId: id, temperamentoId: temperamentoId(id), msgs: r.msgs
+        codigo: estado.codigo, nome: estado.nome, sessaoId: s.id, modo: s.modo,
+        personaId: id, temperamentoId: temperamentoId(id), msgs: r.msgs, duracaoSeg: Math.round(segCliente(r))
       });
       r.aval = resp.avaliacao; r.salvo = Boolean(resp.salvo); r.estado = "concluido";
+      if (concluidos().length === 4 && !s.fimTs) s.fimTs = Date.now();
     } catch (e) {
-      ui.erroAval = e.mensagem || "Não foi possível gerar a avaliação. Tente de novo.";
+      ui.errosAval[id] = e.mensagem || "Não foi possível gerar a avaliação. Tente de novo.";
     } finally {
-      ui.avaliando = false; salvar();
-      if (ui.view === "aval" && ui.atual === id) render();
+      delete ui.avaliando[id]; salvar();
+      if (estado.sessao === s && (ui.view === "painel" || (ui.view === "aval" && ui.atual === id))) render();
     }
   }
 
@@ -255,7 +293,8 @@
       h("header", { class: "hero" },
         h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Simulações práticas"),
         h("h1", null, "Simulador de atendimento"),
-        h("p", null, "Você vai atender 4 clientes pelo WhatsApp, um de cada perfil. Cada cliente aparece uma única vez no seu treino, e no próximo treino os clientes são outros. No fim de cada conversa, você recebe uma nota e dicas do que melhorar, e o resultado vai para o instrutor.")),
+        h("p", null, "Você vai atender 4 clientes pelo WhatsApp, um de cada perfil. Cada cliente aparece uma única vez no seu treino, e no próximo treino os clientes são outros. No fim de cada conversa, você recebe uma nota e dicas do que melhorar, e o resultado vai para o instrutor."),
+        h("p", { class: "time-note" }, "O treino leva cerca de " + TEMPO_TREINO_MIN + " minutos: uns " + TEMPO_CLIENTE_MIN + " minutos por cliente. Um cronômetro mostra o seu ritmo.")),
       h("form", { class: "start", onsubmit: comecar },
         h("div", { class: "field" }, h("label", { for: "nome" }, "Seu nome"), campoNome),
         campoCodigo ? h("div", { class: "field" }, h("label", { for: "codigo" }, "Código da turma"), campoCodigo) : null,
@@ -296,7 +335,10 @@
     var cards = s.ids.map(function (id, i) {
       var p = persona(id), r = s.res[id];
       var status, acao;
-      if (r.estado === "concluido" && r.aval) {
+      if (ui.avaliando[id]) {
+        status = h("span", { class: "status live" }, "Avaliando…");
+        acao = h("button", { class: "btn ghost", onclick: function () { ui.view = "aval"; ui.atual = id; render(); } }, "Acompanhar");
+      } else if (r.estado === "concluido" && r.aval) {
         status = h("span", { class: "status done" }, "Concluído · " + r.aval.resultado);
         acao = h("button", { class: "btn ghost", onclick: function () { abrirCliente(id); } }, "Ver avaliação");
       } else if (r.estado === "andamento") {
@@ -313,7 +355,7 @@
           r.aval ? h("span", { class: "score-pill", style: "color:" + corNota(r.aval.nota) }, fmt(r.aval.nota)) : h("span", { class: "muted" }, "Cliente " + (i + 1))),
         r.aval ? chipTemp(temperamento(id)) : null,
         h("h3", null, r.estado === "pendente" ? "Quem é o cliente aparece ao abrir" : p.nome + " · " + p.cidade),
-        h("p", { class: "muted" }, CFG.perfis[p.perfil].objetivo),
+        h("p", { class: "muted" }, CFG.perfis[p.perfil].objetivo + (r.fimTs ? " · " + mmss(segCliente(r)) + " de conversa" : "")),
         h("div", { class: "card-foot" }, status, acao));
     });
 
@@ -350,6 +392,7 @@
           h("span", { class: "eyebrow" }, "Treinamento comercial Infornet · Nível " + (CFG.modos[s.modo] || CFG.modos.variado).rotulo),
           h("h1", null, estado.nome ? "Treino de " + estado.nome : "Seu treino")),
         h("div", { class: "progress" },
+          h("div", { class: "stat" }, h("span", null, "Tempo"), h("strong", null, h("b", { id: "cron-total" }, mmss(segTreino())), h("small", { class: "of" }, " de ~" + TEMPO_TREINO_MIN + " min"))),
           h("div", { class: "stat" }, h("span", null, "Concluídos"), h("strong", null, feitos + " de 4")),
           h("div", { class: "stat" }, h("span", null, "Média"), h("strong", m != null ? { style: "color:" + corNota(m) } : null, m != null ? fmt(m) : "–")))),
       resumo,
@@ -407,9 +450,12 @@
             h("div", { class: "avatar p-" + p.perfil, style: "background:var(--c)" }, iniciais(p.nome)),
             h("div", { class: "chat-id" }, h("strong", null, p.nome), h("span", null, p.cidade + " · " + CFG.perfis[p.perfil].rotulo)),
             h("div", { class: "head-actions" },
+              h("span", { class: "cron", id: "cron", title: "Tempo com este cliente (meta: cerca de " + TEMPO_CLIENTE_MIN + " minutos)" }, mmss(segCliente(r))),
               r.fim ? null : h("button", { class: "btn ghost", disabled: !temResposta || ui.aguardando,
                 onclick: function () { ui.confirmarEncerrar = true; render(); } }, "Encerrar atendimento"))),
           encerrar,
+          h("div", { class: "confirm-bar", id: "alerta-tempo", role: "status", hidden: r.fim || segCliente(r) < ALERTA_CLIENTE_MIN * 60 },
+            "Já são mais de " + ALERTA_CLIENTE_MIN + " minutos com este cliente. Procure encaminhar o fechamento: o treino todo leva cerca de " + TEMPO_TREINO_MIN + " minutos."),
           msgs,
           ui.erro ? h("p", { class: "err", role: "alert" }, ui.erro) : null,
           h("div", { class: "composer" }, ta,
@@ -425,17 +471,19 @@
     var topo = h("div", { class: "row" },
       h("button", { class: "btn ghost", onclick: voltarPainel }, "← Clientes"),
       chip(p.perfil), h("strong", null, p.nome + " · " + p.cidade),
-      r.aval || ui.avaliando ? chipTemp(temperamento(id)) : null);
+      r.aval || ui.avaliando[id] ? chipTemp(temperamento(id)) : null);
 
-    if (ui.avaliando) {
+    if (ui.avaliando[id]) {
+      var proximo = estado.sessao.ids.some(function (x) { return estado.sessao.res[x].estado !== "concluido" && x !== id; });
       return [topo, h("div", { class: "loading", role: "status" },
         h("h2", null, "Avaliando o atendimento…"),
-        h("p", { class: "muted" }, "O instrutor virtual está lendo a conversa. Isso leva de alguns segundos a um minuto."))];
+        h("p", { class: "muted" }, "O instrutor virtual está lendo a conversa. Isso leva de alguns segundos a um minuto."),
+        proximo ? h("button", { class: "btn", onclick: voltarPainel }, "Atender o próximo cliente enquanto isso") : null)];
     }
     if (!r.aval) {
       return [topo, h("div", { class: "notice warn", role: "alert" },
         h("strong", null, "Não foi possível gerar a avaliação"),
-        h("p", null, ui.erroAval || "Tente de novo."),
+        h("p", null, ui.errosAval[id] || "Tente de novo."),
         h("div", { class: "row" }, h("button", { class: "btn", onclick: function () { avaliar(id); } }, "Tentar de novo")))];
     }
     var a = r.aval;
@@ -480,6 +528,7 @@
       var box = document.getElementById("msgs"); if (box) box.scrollTop = box.scrollHeight;
       var ta = document.getElementById("msg"); if (ta) ajustar(ta);
     }
+    tick();
   }
 
   render();

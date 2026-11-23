@@ -55,6 +55,7 @@ table.res tbody tr:hover { background: var(--surface-2); }
   function add(e, k) { if (k == null || k === false) return; if (Array.isArray(k)) { k.forEach(function (x) { add(e, x); }); return; } e.append(k.nodeType ? k : document.createTextNode(String(k))); }
   function fmt(n) { return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
   function cor(n) { return n >= 8 ? "var(--good)" : n >= 6 ? "var(--warn)" : "var(--bad)"; }
+  function mmss(seg) { if (seg == null || !isFinite(seg)) return "–"; seg = Math.max(0, Math.round(seg)); var m = Math.floor(seg / 60), x = seg % 60; return m + ":" + (x < 10 ? "0" : "") + x; }
   function data(iso) { var d = new Date(iso); return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
   function chipPerfil(r) { return h("span", { class: "chip p-" + r.perfil }, r.perfilRotulo); }
   function chipTemp(r) { var c = r.nivel === 3 ? "var(--bad)" : r.nivel === 2 ? "var(--warn)" : "var(--good)"; return h("span", { class: "chip", style: "--c:" + c }, r.temperamento); }
@@ -85,11 +86,11 @@ table.res tbody tr:hover { background: var(--surface-2); }
   }
 
   function csv() {
-    var linhas = [["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Nível do treino", "Nota", "Resultado",
+    var linhas = [["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Nível do treino", "Tempo (min:seg)", "Nota", "Resultado",
       "Empatia e controle emocional", "Diagnóstico e perguntas", "Valor da Infornet", "Objeções e negociação", "Condução e fechamento",
       "Pontos fortes", "Para melhorar"]];
     filtrados().forEach(function (r) {
-      linhas.push([data(r.data), r.nome, r.perfilRotulo, r.cliente, r.temperamento, r.modo, String(r.nota).replace(".", ","), r.resultado]
+      linhas.push([data(r.data), r.nome, r.perfilRotulo, r.cliente, r.temperamento, r.modo, mmss(r.duracaoSeg), String(r.nota).replace(".", ","), r.resultado]
         .concat(r.criterios.map(function (c) { return c.nota; }))
         .concat([r.pontosFortes.join(" | "), r.melhorar.join(" | ")]));
     });
@@ -116,7 +117,9 @@ table.res tbody tr:hover { background: var(--surface-2); }
     lista.forEach(function (r) { (g[r.nome] = g[r.nome] || []).push(r); });
     return Object.keys(g).sort(function (a, b) { return a.localeCompare(b, "pt-BR"); }).map(function (nome) {
       var rs = g[nome]; var m = rs.reduce(function (s, r) { return s + Number(r.nota); }, 0) / rs.length;
-      return { nome: nome, qtd: rs.length, media: m, ultima: rs[0].data };
+      var tempos = rs.map(function (r) { return r.duracaoSeg; }).filter(function (x) { return x != null; });
+      var tm = tempos.length ? tempos.reduce(function (a, b) { return a + b; }, 0) / tempos.length : null;
+      return { nome: nome, qtd: rs.length, media: m, ultima: rs[0].data, tempoMedio: tm };
     });
   }
 
@@ -130,7 +133,7 @@ table.res tbody tr:hover { background: var(--surface-2); }
         h("div", { class: "big-score", style: "color:" + cor(r.nota) }, fmt(r.nota), h("small", null, " / 10")),
         h("div", { style: "display:grid;gap:6px;min-width:0;flex:1 1 220px" },
           h("span", { class: "eyebrow" }, "Resultado"), h("h2", null, r.resultado),
-          h("p", { class: "muted" }, "Cliente: " + r.cliente))),
+          h("p", { class: "muted" }, "Cliente: " + r.cliente + " · Tempo de conversa: " + mmss(r.duracaoSeg)))),
       h("div", { class: "eval-grid" },
         h("div", { class: "panel" }, h("h3", null, "Critérios"), r.criterios.map(function (c) {
           return h("div", { class: "crit" },
@@ -192,16 +195,17 @@ table.res tbody tr:hover { background: var(--surface-2); }
       h("div", { class: "people", style: "margin:12px 0 24px" }, pessoas.map(function (p) {
         return h("div", { class: "person" }, h("strong", null, p.nome),
           h("span", { class: "big", style: "color:" + cor(p.media) }, fmt(p.media)),
-          h("span", { class: "muted" }, p.qtd + (p.qtd === 1 ? " atendimento" : " atendimentos") + " · último em " + data(p.ultima)));
+          h("span", { class: "muted" }, p.qtd + (p.qtd === 1 ? " atendimento" : " atendimentos") + " · último em " + data(p.ultima)),
+          h("span", { class: "muted" }, "Tempo médio por cliente: " + mmss(p.tempoMedio)));
       })),
       h("h2", { style: "margin-bottom:12px" }, "Todos os atendimentos"),
       h("div", { class: "table-wrap" }, h("table", { class: "res" },
-        h("thead", null, h("tr", null, ["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Resultado", "Nota"].map(function (t) { return h("th", null, t); }))),
+        h("thead", null, h("tr", null, ["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Resultado", "Tempo", "Nota"].map(function (t) { return h("th", null, t); }))),
         h("tbody", null, lista.map(function (r) {
           var abrir = function () { st.aberto = r.id; render(); window.scrollTo(0, 0); };
           return h("tr", { tabindex: "0", onclick: abrir, onkeydown: function (e) { if (e.key === "Enter") abrir(); } },
             h("td", null, data(r.data)), h("td", null, r.nome), h("td", null, chipPerfil(r)), h("td", null, r.cliente),
-            h("td", null, chipTemp(r)), h("td", null, r.resultado), h("td", { class: "n", style: "color:" + cor(r.nota) }, fmt(r.nota)));
+            h("td", null, chipTemp(r)), h("td", null, r.resultado), h("td", { class: "n", style: "font-weight:600" }, mmss(r.duracaoSeg)), h("td", { class: "n", style: "color:" + cor(r.nota) }, fmt(r.nota)));
         }))))
     ];
   }

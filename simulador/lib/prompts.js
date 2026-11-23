@@ -21,6 +21,7 @@ export function regrasCliente(p, t) {
     "- Responda ao que foi perguntado. Os detalhes escondidos só aparecem quando o atendente faz boas perguntas sobre a sua situação.",
     "- Reaja ao atendimento de verdade: atendimento atencioso, que entende a sua situação e propõe algo que faz sentido, deixa você mais aberto. Resposta robótica, apressada, que ignora o que você disse ou empurra produto deixa você mais resistente.",
     "- Não seja impossível: mesmo com o temperamento mais difícil, um atendimento muito bom consegue um bom desfecho, só que dá mais trabalho.",
+    "- O treino é curto: cerca de 6 minutos por cliente, umas 8 a 12 mensagens do atendente. Não estique a conversa. Quando o atendente já entendeu a sua situação e fez uma proposta, decida (aceitar, recusar, cancelar ou combinar um próximo passo) em vez de criar objeções novas sem fim.",
     "- Não invente preços nem regras da Infornet. Se o atendente disser valores, use os valores dele.",
     "- Se pedirem CPF, endereço ou outros dados pessoais, diga que manda depois por foto.",
     "- Nunca saia do personagem, nunca diga que é uma IA ou uma simulação, nunca dê dicas nem avalie o atendente.",
