@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "api/cliente.js": { "maxDuration": 60 },
+    "api/avaliar.js": { "maxDuration": 120 }
+  }
+}

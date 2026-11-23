@@ -50,6 +50,15 @@ Escreva sempre em português. O nome correto da empresa é **Infornet** (não "I
 - Oscar pediu que o escopo e a precificação venham no relatório de entrega.
 - Referência de custo: o Randolfo testa o Claude para triagem a custo baixo; a IA do ChatMix aumentaria o custo atual.
 
+## Simulador de atendimento (pasta `simulador/`)
+
+- Site para a etapa prática (módulo 4), feito para publicar na Vercel com Root Directory `simulador`. Instruções em `simulador/README.md`.
+- 4 perfis × 4 clientes cada (`lib/dados.js`) e 6 temperamentos sorteados (tranquilo a muito difícil); dentro de um treino, cliente e temperamento não se repetem.
+- O servidor (`api/`) chama a API do Claude (`lib/claude.js`) e guarda cada avaliação no Upstash Redis; o instrutor vê tudo em `/resultados.html` com senha.
+- Variáveis na Vercel: `ANTHROPIC_API_KEY`, `CODIGO_TURMA`, `SENHA_INSTRUTOR` e as do Upstash Redis.
+- A logo oficial da Infornet ainda não foi recebida; a encontrada na internet não foi confirmada e foi retirada.
+- Os clientes simulados não citam preços porque a tabela de planos ainda não chegou (pedido em `docs/pedido-informacoes-simulador.md`).
+
 ## Pendências
 
 - Infornet: composição das turmas e datas; limite de desconto por escrito; lista de informações técnicas básicas; adesão dos atendentes aos vídeos do Instagram (cerca de 4 por mês); relatório de clientes por cidade; tabela de planos e preços; números mensais de vendas e cancelamentos; contatos das atendentes de Campo Maior e Piripiri.

@@ -1,0 +1,17 @@
+{
+  "name": "simulador-infornet",
+  "private": true,
+  "type": "module",
+  "description": "Simulador de atendimento para o treinamento comercial da Infornet",
+  "scripts": {
+    "dev": "node dev-server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.6.0",
+    "@upstash/redis": "1.40.0",
+    "zod": "4.6.7"
+  }
+}
