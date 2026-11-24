@@ -53,12 +53,14 @@ Escreva sempre em português. O nome correto da empresa é **Infornet** (não "I
 ## Simulador de atendimento (pasta `simulador/`)
 
 - Site para a etapa prática (módulo 4), feito para publicar na Vercel com Root Directory `simulador`. Instruções em `simulador/README.md`.
-- 4 perfis × 4 clientes cada (`lib/dados.js`) e 6 temperamentos sorteados (tranquilo a muito difícil); dentro de um treino, cliente e temperamento não se repetem.
+- 4 perfis × 4 clientes cada (`lib/dados.js`) e 7 temperamentos sorteados (tranquilo, indeciso, desconfiado, detalhista, apressado, irritado e muito difícil); dentro de um treino, cliente e temperamento não se repetem.
 - O servidor (`api/`) chama a API do Claude (`lib/claude.js`) e guarda cada avaliação no Upstash Redis; dois links: `/` para os atendentes fazerem o teste e `/instrutor` (com senha) para ver o desempenho de cada atendente isoladamente.
 - Duração média do treino: cerca de 25 minutos por pessoa (uns 6 por cliente). Há cronômetro, aviso aos 7 minutos por cliente, limite de 14 mensagens do atendente e avaliação em segundo plano.
 - Visual: tema escuro único nas cores da logo (fundo quase preto azulado, azul elétrico, branco), aprovado pela usuária.
 - A nota da IA é preliminar; a avaliação final é humana (combinado na apresentação de 19/11). O instrutor registra nota final e comentário em `/instrutor`.
 - Apresentação de 19/11 (`Infornet_Alinhamento_Treinamento_Comercial.pptx`): módulos de 25, 25, 35 e 35 minutos (simulações = módulo 4, 35 min); situação 3 é "cliente insatisfeito com a conexão"; o slide 6 cita ChatGPT, mas o simulador usa o Claude.
+- Reunião interna da SPJr (24/11/2026, "Nova Gravação 4"): conteúdo deve ser bem simples e didático para atendentes do interior (evitar siglas como SPIN/BANT com eles); clientes só percebem o valor do atendimento rápido quando saem; directs do Instagram ficam sem resposta; Marcela sugere que atendentes peçam a opinião do cliente; muita visita técnica que um reinício do roteador resolveria; Oscar confirmou desconto de até 50% e quer desconto de Natal; plano de 100 mega citado sem preço. O simulador foi elogiado na reunião.
+- O simulador registra o tempo médio de resposta do atendente em cada conversa (área do instrutor e planilha).
 - Variáveis na Vercel: `ANTHROPIC_API_KEY`, `CODIGO_TURMA`, `SENHA_INSTRUTOR` e as do Upstash Redis.
 - Logo oficial recebida em 23/11/2026: `simulador/logo-infornet.jpg` (fundo escuro, mostrada num bloco escuro) e `simulador/icone-infornet.png` (ícone da aba). Azul da marca usado como cor de destaque.
 - Versão de demonstração no claude.ai (artefato, sem servidor, sem área do instrutor): https://claude.ai/artifact/86B7hB9hGGH2Rfd8iG9Zcz; código em `artefato/simulador-infornet.html`.

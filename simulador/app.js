@@ -143,6 +143,15 @@
     if (!r || !r.inicioTs) return 0;
     return ((r.fimTs || Date.now()) - r.inicioTs) / 1000;
   }
+  // Quanto tempo, em média, o atendente levou para responder cada mensagem do cliente.
+  function tempoMedioResposta(r) {
+    var tempos = [];
+    for (var i = 1; i < r.msgs.length; i++) {
+      var m = r.msgs[i], antes = r.msgs[i - 1];
+      if (m.de === "atendente" && antes.de === "cliente" && m.ts && antes.ts) tempos.push((m.ts - antes.ts) / 1000);
+    }
+    return tempos.length ? Math.round(tempos.reduce(function (a, b) { return a + b; }, 0) / tempos.length) : null;
+  }
   function segTreino() {
     var s = estado.sessao; if (!s) return 0;
     return ((s.fimTs || Date.now()) - Date.parse(s.inicio)) / 1000;
@@ -200,7 +209,7 @@
   function abrirCliente(id) {
     var r = estado.sessao.res[id], p = persona(id);
     if (r.estado === "concluido") { ui.view = "aval"; ui.atual = id; render(); return; }
-    if (r.estado === "pendente") { r.estado = "andamento"; r.msgs = [{ de: "cliente", t: p.abertura }]; r.inicioTs = Date.now(); salvar(); }
+    if (r.estado === "pendente") { r.estado = "andamento"; r.inicioTs = Date.now(); r.msgs = [{ de: "cliente", t: p.abertura, ts: r.inicioTs }]; salvar(); }
     if (r.fim && !r.aval) { avaliar(id); return; }
     ui.view = "chat"; ui.atual = id; ui.rascunho = ""; ui.erro = ""; ui.confirmarEncerrar = false;
     render();
@@ -217,14 +226,15 @@
     var id = ui.atual, r = estado.sessao.res[id], p = persona(id);
     var texto = ui.rascunho.trim();
     if (!texto || ui.aguardando || r.fim) return;
-    r.msgs.push({ de: "atendente", t: texto });
+    r.msgs.push({ de: "atendente", t: texto, ts: Date.now() });
     ui.rascunho = ""; ui.erro = ""; ui.aguardando = true; salvar(); render();
     ctl = new AbortController();
     try {
       var resp = await api("/api/cliente", { codigo: estado.codigo, personaId: id, temperamentoId: temperamentoId(id), msgs: r.msgs }, ctl.signal);
       var limpo = limparResposta(resp.texto || "", p);
       if (!limpo.partes.length && !limpo.fim) throw { mensagem: "O cliente não respondeu. Envie de novo." };
-      limpo.partes.forEach(function (t) { r.msgs.push({ de: "cliente", t: t }); });
+      var agora = Date.now();
+      limpo.partes.forEach(function (t) { r.msgs.push({ de: "cliente", t: t, ts: agora }); });
       if (limpo.fim) { r.fim = true; r.fimTs = Date.now(); }
     } catch (e) {
       r.msgs.pop();
@@ -246,7 +256,7 @@
     try {
       var resp = await api("/api/avaliar", {
         codigo: estado.codigo, nome: estado.nome, sessaoId: s.id, modo: s.modo,
-        personaId: id, temperamentoId: temperamentoId(id), msgs: r.msgs, duracaoSeg: Math.round(segCliente(r))
+        personaId: id, temperamentoId: temperamentoId(id), msgs: r.msgs, duracaoSeg: Math.round(segCliente(r)), respostaMediaSeg: tempoMedioResposta(r)
       });
       r.aval = resp.avaliacao; r.salvo = Boolean(resp.salvo); r.estado = "concluido";
       if (concluidos().length === 4 && !s.fimTs) s.fimTs = Date.now();
@@ -413,14 +423,18 @@
         h("ul", null, h("li", null, "Paredes e distância enfraquecem o Wi-Fi: peça um teste perto do roteador ou no cabo"),
           h("li", null, "Rede 5 GHz: mais rápida, alcança menos. Rede 2.4 GHz: alcança mais longe, é mais lenta"),
           h("li", null, "Muitos aparelhos ao mesmo tempo dividem a velocidade"),
+          h("li", null, "Antes de abrir visita: desligar o roteador da tomada por 30 segundos e ligar de novo resolve muita coisa"),
           h("li", null, "Luz vermelha no aparelho da fibra: o sinal não está chegando, normalmente precisa de técnico"))),
       h("section", null, h("h3", null, "Diferenciais"),
         h("ul", null, h("li", null, "Atendimento local, rápido e pessoal"), h("li", null, "Chamado resolvido em cerca de 2 horas"),
           h("li", null, "Mesmo sinal em todos os bairros"), h("li", null, "Rede com capacidade sobrando"))),
       h("section", null, h("h3", null, "Lembretes"),
-        h("ul", null, h("li", null, "Pergunte antes de oferecer (SPIN)"), h("li", null, "Descubra quem decide e paga (BANT)"),
+        h("ul", null, h("li", null, "Pergunte antes de oferecer: como usa a internet, o que incomoda, o que acontece quando falha"),
+          h("li", null, "Na venda, descubra quem decide e paga, quanto quer gastar e para quando precisa"),
+          h("li", null, "Responda rápido: atendimento rápido é o que faz o cliente voltar"),
           h("li", null, "Teste a distância antes de mandar técnico"), h("li", null, "Quem sai pelo preço costuma voltar em até 2 meses"),
-          h("li", null, "Contrato de 12 meses com multa"))));
+          h("li", null, "Contrato de 12 meses com multa"),
+          h("li", null, "No fim, confirme se ficou tudo certo e peça a opinião do cliente"))));
   }
 
   function telaChat() {

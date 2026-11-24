@@ -37,6 +37,7 @@ export default async function handler(req, res) {
     cliente: persona.nome + " (" + persona.cidade + ")",
     temperamento: temperamento.rotulo,
     nivel: temperamento.nivel,
+    respostaMediaSeg: corpo.respostaMediaSeg != null && Number.isFinite(Number(corpo.respostaMediaSeg)) ? Math.max(0, Math.min(3600, Math.round(Number(corpo.respostaMediaSeg)))) : null,
     duracaoSeg: Number.isFinite(Number(corpo.duracaoSeg)) ? Math.max(0, Math.min(7200, Math.round(Number(corpo.duracaoSeg)))) : null,
     ...avaliacao,
     conversa: msgs,

@@ -35,7 +35,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
 .person .go { color: var(--accent-text); font-weight: 600; font-size: .85rem; margin-top: 4px; }
 .login { max-width: 420px; }
 .empty { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 24px; text-align: center; }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 2px; }
 .kpi span { font-size: .75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
@@ -140,6 +140,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
       p.media = media(rs, notaFinal);
       p.pendentes = rs.filter(function (r) { return !r.instrutor; }).length;
       p.tempoMedio = media(rs, function (r) { return r.duracaoSeg; });
+      p.respostaMedia = media(rs, function (r) { return r.respostaMediaSeg; });
       p.ultima = rs.reduce(function (a, r) { return r.data > a ? r.data : a; }, rs[0].data);
       p.treinos = Object.keys(rs.reduce(function (o, r) { o[r.sessaoId || r.id] = 1; return o; }, {})).length;
       return p;
@@ -147,10 +148,10 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
   }
 
   function csv(lista, arquivo) {
-    var linhas = [["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Nível do treino", "Tempo (min:seg)", "Nota da IA", "Nota final do instrutor", "Comentário do instrutor", "Avaliado por", "Resultado"]
+    var linhas = [["Data", "Atendente", "Perfil", "Cliente", "Temperamento", "Nível do treino", "Tempo (min:seg)", "Tempo médio de resposta (min:seg)", "Nota da IA", "Nota final do instrutor", "Comentário do instrutor", "Avaliado por", "Resultado"]
       .concat(CRITERIOS).concat(["Pontos fortes", "Para melhorar"])];
     lista.forEach(function (r) {
-      linhas.push([data(r.data), r.nome, r.perfilRotulo, r.cliente, r.temperamento, nivel(r.modo), mmss(r.duracaoSeg), String(r.nota).replace(".", ","), r.instrutor ? String(r.instrutor.nota).replace(".", ",") : "", r.instrutor ? r.instrutor.comentario : "", r.instrutor ? r.instrutor.avaliador : "", r.resultado]
+      linhas.push([data(r.data), r.nome, r.perfilRotulo, r.cliente, r.temperamento, nivel(r.modo), mmss(r.duracaoSeg), mmss(r.respostaMediaSeg), String(r.nota).replace(".", ","), r.instrutor ? String(r.instrutor.nota).replace(".", ",") : "", r.instrutor ? r.instrutor.comentario : "", r.instrutor ? r.instrutor.avaliador : "", r.resultado]
         .concat(r.criterios.map(function (c) { return c.nota; }))
         .concat([r.pontosFortes.join(" | "), r.melhorar.join(" | ")]));
     });
@@ -259,7 +260,8 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
         h("div", { class: "kpi" }, h("span", null, "Média geral"), h("strong", { style: "color:" + cor(p.media) }, fmt(p.media))),
         h("div", { class: "kpi" }, h("span", null, "Atendimentos"), h("strong", null, p.qtd)),
         h("div", { class: "kpi" }, h("span", null, "Treinos"), h("strong", null, p.treinos)),
-        h("div", { class: "kpi" }, h("span", null, "Tempo médio por cliente"), h("strong", null, mmss(p.tempoMedio)))),
+        h("div", { class: "kpi" }, h("span", null, "Tempo médio por cliente"), h("strong", null, mmss(p.tempoMedio))),
+        h("div", { class: "kpi" }, h("span", null, "Tempo médio de resposta"), h("strong", null, mmss(p.respostaMedia)))),
       h("div", { class: "eval-grid" },
         h("div", { class: "panel" }, h("h3", null, "Média por critério"),
           CRITERIOS.map(function (nome) {
@@ -339,7 +341,7 @@ table.res tbody tr.click:hover { background: var(--surface-2); }
         h("div", { class: "big-score", style: "color:" + cor(r.nota) }, fmt(r.nota), h("small", null, " / 10")),
         h("div", { style: "display:grid;gap:6px;min-width:0;flex:1 1 220px" },
           h("span", { class: "eyebrow" }, "Avaliação preliminar da IA"), h("h2", null, r.resultado),
-          h("p", { class: "muted" }, "Atendente: " + r.nome + " · Cliente: " + r.cliente + " · Tempo de conversa: " + mmss(r.duracaoSeg)))),
+          h("p", { class: "muted" }, "Atendente: " + r.nome + " · Cliente: " + r.cliente + " · Tempo de conversa: " + mmss(r.duracaoSeg) + " · Tempo médio de resposta: " + mmss(r.respostaMediaSeg)))),
       painelInstrutor(r),
       h("div", { class: "eval-grid" },
         h("div", { class: "panel" }, h("h3", null, "Critérios da IA (preliminar)"), r.criterios.map(function (c) {

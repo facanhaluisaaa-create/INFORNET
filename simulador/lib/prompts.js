@@ -63,11 +63,11 @@ export function promptAvaliacao(p, t, msgs) {
     "  " + CRITERIOS[1] + ": investigar a necessidade antes de oferecer (SPIN: situação, problema, implicação, necessidade); na venda, descobrir orçamento, quem decide e prazo (BANT); na reclamação técnica, fazer a triagem antes de mandar técnico.",
     "  " + CRITERIOS[2] + ": comunicar os diferenciais da Infornet ligados ao que o cliente precisa e usar conhecimento técnico básico (Wi-Fi, roteador, fibra) em linguagem simples.",
     "  " + CRITERIOS[3] + ": responder objeções de preço e pedidos de cancelamento com argumento de valor, usar a escada de desconto aos poucos e não prometer o que não pode cumprir.",
-    "  " + CRITERIOS[4] + ": comunicação pelo WhatsApp (mensagens claras, curtas, sem erros e sem textão) e terminar com um próximo passo claro (contratação, prazo, retorno combinado).",
+    "  " + CRITERIOS[4] + ": comunicação pelo WhatsApp (mensagens claras, curtas, sem erros e sem textão), terminar com um próximo passo claro (contratação, prazo, retorno combinado) e, quando fizer sentido, confirmar se ficou tudo certo e pedir a opinião do cliente sobre o atendimento.",
     "- nota: nota geral de 0 a 10, com uma casa decimal, coerente com os critérios e com o desfecho.",
     "- pontosFortes e melhorar: 2 itens cada, frases curtas e específicas.",
     "- fraseExemplo: uma mensagem pronta que o atendente poderia ter enviado no momento mais importante da conversa, no tom do WhatsApp.",
-    "- Escreva em português do Brasil, falando diretamente com o atendente (você).",
+    "- Escreva em português do Brasil, falando diretamente com o atendente (você), de forma simples e didática: quem lê é um atendente do interior, sem formação em vendas. Não use siglas nem termos técnicos de vendas (como SPIN, BANT ou rapport); diga, por exemplo, 'perguntar como a pessoa usa a internet antes de oferecer o plano'.",
     "- Conversa muito curta ou sem esforço real recebe nota baixa."
   ].join("\n");
 }
